@@ -11,7 +11,7 @@ double precision x(0:n+1), z(0:n+1)
 double precision ini_re, ini_im
 double complex Psi_T(0:n+1),     Psi_P(0:n+1),     Tem(0:n+1)     ! coefficients about (z,t)
 double complex hat_Psi_T(0:n+1), hat_Psi_P(0:n+1), hat_Tem(0:n+1) ! Chebyshev coefficients about t
-double complex a(0:n+1,0:n+1), b(0:n+1)
+double complex a(0:n+1,0:n+1), a1(0:n+1,0:n+1), b1(0:n+1), a2(0:n+1,0:n+1), b2(0:n+1), a3(0:n+1,0:n+1), b3(0:n+1)
 double precision Ek, Pr, epsilon, R_c, delta_R, k_x, k_y, k_z, k2_perp, k2, time, dt
 double precision TTT
 integer it, nt
@@ -63,54 +63,44 @@ Tem(n+1)=(0.d0, 0.d0)
 do j=0, n+1
  do i=0, n+1
   a(i,j)=TTT(0,j,x(i))
+  b1(i)=Psi_T(i)   
+  b2(i)=Psi_P(i) 
+  b3(i)=Tem(i) 
  enddo
 enddo
-do i=1, n
- b(i)=Psi_T(i)   
-enddo
-b(0)=Psi_T(0)
-b(n+1)=Psi_T(n+1)
-!call r8mat_fs(n+2,a,b,hat_Psi_T)
-do i=1, n
- b(i)=Psi_P(i)   
-enddo
-b(0)=Psi_P(0)
-b(n+1)=Psi_P(n+1)
-!call r8mat_fs(n+2,a,b,hat_Psi_P)
-do i=1, n
- b(i)=Tem(i)   
-enddo
-b(0)=Tem(0)
-b(n+1)=Tem(n+1)
-!call r8mat_fs(n+2,a,b,hat_Tem)
+!call r8mat_fs(n+2,a,b1,hat_Psi_T)
+!call r8mat_fs(n+2,a,b2,hat_Psi_P)
+!call r8mat_fs(n+2,a,b3,hat_Tem)
 
 stop
 
+! collocate Psi_T equation on inner points
+do j=0, n+1
+ do i=1, n
+  a1(i,j)=TTT(0,j,x(i))
+ enddo
+enddo
+! collocate Psi_T equation on boundary points
+do j=0, n+1
+ a1(0,j)=TTT(1,j,x(0))
+ a1(n+1,j)=TTT(1,j,x(n+1))
+enddo
+
 ! time stepping
+time=0.d0
 dt=1.d-1
 do it=1, nt
-! collocate equation on inner points
- do j=0, n+1
-  do i=1, n
-   a(i,j)=TTT(0,j,x(i))
-  enddo
- enddo
-! collocate equation on boundary points
- do j=0, n+1
-  a(0,j)=TTT(0,j,x(0))
-  a(n+1,j)=TTT(0,j,x(n+1))
- enddo
-! the right-hand-side vector
+ time=time+it*dt
  do i=1, n
-  b(i)=0.d0
+  b1(i)=(0.d0, 0.d0)
   do j=0, n+1
-   b(i)=b(i)+(dt*TTT(2,j,x(i))+TTT(0,j,x(i)))*Psi_T(j)
+   b1(i)=b1(i)+(dt*TTT(2,j,x(i))+TTT(0,j,x(i)))*Psi_T(j)
   enddo   
  enddo
- b(0)=Psi_T(0)
- b(n+1)=Psi_T(n+1)
+ b1(0)=(0.d0, 0.d0)
+ b1(n+1)=(0.d0, 0.d0)
 ! solve a*hat_Psi_T=b
-! call r8mat_fs(n+2,a,b,hat_Psi_T)
+! call r8mat_fs(n+2,a1,b1,hat_Psi_T)
  write(1,'(4E15.6)') time, hat_Psi_T(1), hat_Psi_P(1), hat_Tem(1)
 enddo
 
@@ -123,6 +113,12 @@ do i=0,n+1
  write(2,'(4E15.6)') x(i), Psi_T(i), Psi_P(i), Tem(i) 
 enddo
 end program main
+
+subroutine spec_to_phys
+end subroutine spec_to_phys
+
+subroutine phys_to_spec
+end subroutine phys_to_spec
 
 !!!   TTT(K,M,X) = the K-th derivative of Tm(X), the M-th Chebyshev polynomial evaluated at X.
 
