@@ -71,6 +71,18 @@ enddo
 b(0)=Psi_T(0)
 b(n+1)=Psi_T(n+1)
 !call r8mat_fs(n+2,a,b,hat_Psi_T)
+do i=1, n
+ b(i)=Psi_P(i)   
+enddo
+b(0)=Psi_P(0)
+b(n+1)=Psi_P(n+1)
+!call r8mat_fs(n+2,a,b,hat_Psi_P)
+do i=1, n
+ b(i)=Tem(i)   
+enddo
+b(0)=Tem(0)
+b(n+1)=Tem(n+1)
+!call r8mat_fs(n+2,a,b,hat_Tem)
 
 stop
 
