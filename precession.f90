@@ -1,17 +1,26 @@
-! gfortran -o precession precession.f90 solve.f90
+! gfortran -o precession precession.f90 nag.f
 ! z=(1/2)x, D=d/dz=2d/dx, D^2=4d/dx
 
-program main
+module globe
 implicit none
 double precision pi
 double complex one
-integer i, j, n
+integer n
 parameter (n=10)
-double precision x(0:n+1), z(0:n+1)
+double precision x(0:n+1)
+end module globe
+
+program main
+use globe
+implicit none
+integer i, j
+double precision z(0:n+1)
 double precision ini_re, ini_im
 double complex Psi_T(0:n+1),     Psi_P(0:n+1),     Tem(0:n+1)     ! coefficients about (z,t)
 double complex hat_Psi_T(0:n+1), hat_Psi_P(0:n+1), hat_Tem(0:n+1) ! Chebyshev coefficients about t
-double complex a(0:n+1,0:n+1), a1(0:n+1,0:n+1), b1(0:n+1), a2(0:n+1,0:n+1), b2(0:n+1), a3(0:n+1,0:n+1), b3(0:n+1)
+double complex a1(0:n+1,0:n+1), a2(0:n+1,0:n+1), a3(0:n+1,0:n+1)
+double complex a1_inv(0:n+1,0:n+1), a2_inv(0:n+1,0:n+1), a3_inv(0:n+1,0:n+1)
+double complex b1(0:n+1), b2(0:n+1), b3(0:n+1)
 double precision Ek, Pr, epsilon, R_c, delta_R, k_x, k_y, k_z, k2_perp, k2, time, dt
 double precision TTT
 integer it, nt
@@ -58,19 +67,9 @@ Psi_P(0)=(0.d0, 0.d0)
 Psi_P(n+1)=(0.d0, 0.d0)
 Tem(0)=(0.d0, 0.d0)
 Tem(n+1)=(0.d0, 0.d0)
-
-! calculate Chebyshev coefficients of initial condition
-do j=0, n+1
- do i=0, n+1
-  a(i,j)=TTT(0,j,x(i))
-  b1(i)=Psi_T(i)   
-  b2(i)=Psi_P(i) 
-  b3(i)=Tem(i) 
- enddo
-enddo
-!call r8mat_fs(n+2,a,b1,hat_Psi_T)
-!call r8mat_fs(n+2,a,b2,hat_Psi_P)
-!call r8mat_fs(n+2,a,b3,hat_Tem)
+call phys_to_spec(Psi_T,hat_Psi_T)
+call phys_to_spec(Psi_P,hat_Psi_T)
+call phys_to_spec(Tem,hat_Tem)
 
 stop
 
@@ -85,12 +84,18 @@ do j=0, n+1
  a1(0,j)=TTT(1,j,x(0))
  a1(n+1,j)=TTT(1,j,x(n+1))
 enddo
+!call mat_inv(n+2,a1,a1_inv)
+!call mat_inv(n+2,a2,a2_inv)
+!call mat_inv(n+2,a3,a3_inv)
 
 ! time stepping
 time=0.d0
 dt=1.d-1
 do it=1, nt
  time=time+it*dt
+ call spec_to_phys(hat_Psi_T,Psi_T)
+ call spec_to_phys(hat_Psi_P,Psi_P)
+ call spec_to_phys(hat_Tem,Tem)
  do i=1, n
   b1(i)=(0.d0, 0.d0)
   do j=0, n+1
@@ -99,26 +104,69 @@ do it=1, nt
  enddo
  b1(0)=(0.d0, 0.d0)
  b1(n+1)=(0.d0, 0.d0)
-! solve a*hat_Psi_T=b
-! call r8mat_fs(n+2,a1,b1,hat_Psi_T)
+!call mat_mul(n+2,a1_inv,b1,hat_Psi_T)
+!call mat_mul(n+2,a2_inv,b2,hat_Psi_P)
+!call mat_mul(n+2,a3_inv,b3,hat_Tem)
  write(1,'(4E15.6)') time, hat_Psi_T(1), hat_Psi_P(1), hat_Tem(1)
 enddo
 
 ! output module of Psi_T, Psi_P, Tem
-do i=0,n+1
- Psi_T(i)=0.d0
- do j=0, n+1
-  Psi_T(i)=Psi_T(i)+hat_Psi_T(j)*TTT(0,j,x(i))
- enddo
- write(2,'(4E15.6)') x(i), Psi_T(i), Psi_P(i), Tem(i) 
-enddo
+call spec_to_phys(hat_Psi_T,Psi_T)
+call spec_to_phys(hat_Psi_P,Psi_P)
+call spec_to_phys(hat_Tem,Tem)
 end program main
 
-subroutine spec_to_phys
+subroutine spec_to_phys(spec,phys)
+use globe
+implicit none
+integer i, j
+double complex phys(0:n+1), spec(0:n+1)
+double precision TTT
+do i=0,n+1
+ phys(i)=0.d0
+ do j=0, n+1
+  phys(i)=phys(i)+spec(j)*TTT(0,j,x(i))
+ enddo
+enddo
 end subroutine spec_to_phys
 
-subroutine phys_to_spec
+subroutine phys_to_spec(phys,spec)
+use globe
+implicit none
+integer i, j
+double complex phys(0:n+1), spec(0:n+1)
+double precision TTT, a(0:n+1,0:n+1)
+do j=0, n+1
+ do i=0, n+1
+  a(i,j)=TTT(0,j,x(i))
+ enddo
+enddo
+!call r8mat_fs(n+2,a,phys,spec)
 end subroutine phys_to_spec
+
+subroutine mat_inv(n,a,b)
+implicit none
+integer n
+double complex a(n,n), b(n,n)
+double precision RINT(n), DETR, DETI
+integer IDETE, IFAIL
+call F03AHF(n,A,n,DETR,DETI,IDETE,RINT,IFAIL)
+call F04AKF(n,n,A,n,RINT,b,n)
+end subroutine mat_inv
+
+subroutine mat_mul(n,a,b,c)
+implicit none
+integer i, j, k, n
+double complex a(n,n), b(n,n), c(n,n)
+do i=1,n
+ do j=1,n
+  c(i,j)=0.d0
+  do k=1,n
+   c(i,j)=c(i,j)+a(i,k)*b(k,j)
+  enddo
+ enddo
+enddo
+end subroutine mat_mul
 
 !!!   TTT(K,M,X) = the K-th derivative of Tm(X), the M-th Chebyshev polynomial evaluated at X.
 
