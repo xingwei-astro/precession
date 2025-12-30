@@ -1,27 +1,22 @@
 ! gfortran -o precession precession.f90 nag.f
 ! z=(1/2)x, D=d/dz=2d/dx, D^2=4d/dx
 
-module globe
+program main
 implicit none
 double precision pi
 double complex one
 integer n
 parameter (n=10)
-double precision x(0:n+1)
-end module globe
-
-program main
-use globe
-implicit none
+double precision x(n)
 integer i, j
-double precision z(0:n+1)
-double precision ini_re, ini_im
-double complex Psi_T(0:n+1),     Psi_P(0:n+1),     Tem(0:n+1)     ! coefficients about (z,t)
-double complex hat_Psi_T(0:n+1), hat_Psi_P(0:n+1), hat_Tem(0:n+1) ! Chebyshev coefficients about t
-double complex a1(0:n+1,0:n+1), a2(0:n+1,0:n+1), a3(0:n+1,0:n+1)
-double complex a1_inv(0:n+1,0:n+1), a2_inv(0:n+1,0:n+1), a3_inv(0:n+1,0:n+1)
-double complex b1(0:n+1), b2(0:n+1), b3(0:n+1)
 double precision Ek, Pr, epsilon, R_c, delta_R, k_x, k_y, k_z, k2_perp, k2, time, dt
+double precision z(n)
+double precision ini_re, ini_im
+double complex Psi_T(n),       Psi_P(n),       Tem(n)    	  ! spectral coefficients about (z,t)
+double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	  ! Chebyshev coefficients about t
+double complex a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  		  ! coefficient matrices 
+double complex a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
+double complex b1(n+2), b2(n+4), b3(n+2)  			  ! right-hand-side
 double precision TTT
 integer it, nt
 parameter (nt=10000)
@@ -39,131 +34,139 @@ k2=k2_perp+k_z**2
 R_c=4.d0*k_z**2/k2_perp*2.d0*Pr/(1.d0+Pr)+2.d0*Ek**2*(1.d0+1.d0/Pr)*k2**3/k2_perp
 delta_R=1.d-3
 
-x(0)=-1.d0
-x(n+1)=1.d0
+! inner points
 do i=1,n
  x(i)=-cos(pi/dfloat(n)*(i-0.5d0))
-enddo
-do i=0,n+1
  z(i)=x(i)/2.d0
 enddo
 
-! give initial condition
-call random_seed()
-do i=1,n
- call random_number(ini_re)
- call random_number(ini_im)
- Psi_T(i)=ini_re+one*ini_im
- call random_number(ini_re)
- call random_number(ini_im)
- Psi_P(i)=ini_re+one*ini_im
- call random_number(ini_re)
- call random_number(ini_im)
- Tem(i)=ini_re+one*ini_im
-enddo
-Psi_T(0)=Psi_T(1)
-Psi_T(n+1)=Psi_T(n)
-Psi_P(0)=(0.d0, 0.d0)
-Psi_P(n+1)=(0.d0, 0.d0)
-Tem(0)=(0.d0, 0.d0)
-Tem(n+1)=(0.d0, 0.d0)
-call phys_to_spec(Psi_T,hat_Psi_T)
-call phys_to_spec(Psi_P,hat_Psi_T)
-call phys_to_spec(Tem,hat_Tem)
-
-stop
-
 ! collocate Psi_T equation on inner points
-do j=0, n+1
+do j=1, n+2
  do i=1, n
   a1(i,j)=TTT(0,j,x(i))
  enddo
 enddo
 ! collocate Psi_T equation on boundary points
-do j=0, n+1
- a1(0,j)=TTT(1,j,x(0))
- a1(n+1,j)=TTT(1,j,x(n+1))
+do j=1, n+2
+ a1(n+1,j)=TTT(1,j,-1.d0)
+ a1(n+2,j)=TTT(1,j,1.d0)
 enddo
-!call mat_inv(n+2,a1,a1_inv)
-!call mat_inv(n+2,a2,a2_inv)
-!call mat_inv(n+2,a3,a3_inv)
+b1(n+1)=(0.d0, 0.d0)
+b1(n+2)=(0.d0, 0.d0)
+! collocate Psi_P equation on inner points
+do j=1, n+2
+ do i=1, n
+  a2(i,j)=TTT(0,j,x(i))
+ enddo
+enddo
+! collocate Psi_P equation on boundary points
+do j=1, n+2
+ a2(n+1,j)=TTT(0,j,-1.d0)
+ a2(n+2,j)=TTT(0,j,1.d0)
+ a2(n+3,j)=TTT(2,j,-1.d0)
+ a2(n+4,j)=TTT(2,j,1.d0)
+enddo
+b2(n+1)=(0.d0, 0.d0)
+b2(n+2)=(0.d0, 0.d0)
+b2(n+3)=(0.d0, 0.d0)
+b2(n+4)=(0.d0, 0.d0)
+! collocate Tem equation on inner points
+do j=1, n+2
+ do i=1, n
+  a3(i,j)=TTT(0,j,x(i))
+ enddo
+enddo
+! collocate Tem equation on boundary points
+do j=1, n+2
+ a3(n+1,j)=TTT(0,j,-1.d0)
+ a3(n+2,j)=TTT(0,j,1.d0)
+enddo
+b3(n+1)=(0.d0, 0.d0)
+b3(n+2)=(0.d0, 0.d0)
+! calculate inverse of coefficient matrices a1, a2, a3 for time stepping
+call mat_inv(n+2,a1,a1_inv)
+call mat_inv(n+4,a2,a2_inv)
+call mat_inv(n+2,a3,a3_inv)
+
+! give initial condition
+call random_seed()
+do i=1, 10  			! the first 10 Chebyshev coefficients are non-zero and others are zero
+ call random_number(ini_re)
+ call random_number(ini_im)
+ hat_Psi_T(i)=ini_re+one*ini_im
+ call random_number(ini_re)
+ call random_number(ini_im)
+ hat_Psi_P(i)=ini_re+one*ini_im
+ call random_number(ini_re)
+ call random_number(ini_im)
+ hat_Tem(i)=ini_re+one*ini_im
+enddo
 
 ! time stepping
 time=0.d0
 dt=1.d-1
 do it=1, nt
  time=time+it*dt
- call spec_to_phys(hat_Psi_T,Psi_T)
- call spec_to_phys(hat_Psi_P,Psi_P)
- call spec_to_phys(hat_Tem,Tem)
+ call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x)
+ call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x)
+ call spec_to_phys(n+2,hat_Tem,n,Tem,x)
  do i=1, n
-  b1(i)=(0.d0, 0.d0)
-  do j=0, n+1
-   b1(i)=b1(i)+(dt*TTT(2,j,x(i))+TTT(0,j,x(i)))*Psi_T(j)
-  enddo   
+  b1(i)=(dt*TTT(2,j,x(i))+TTT(0,j,x(i)))*Psi_T(i)
+  b2(i)=(dt*TTT(2,j,x(i))+TTT(0,j,x(i)))*Psi_P(i)
+  b3(i)=(dt*TTT(2,j,x(i))+TTT(0,j,x(i)))*Tem(i)
  enddo
- b1(0)=(0.d0, 0.d0)
- b1(n+1)=(0.d0, 0.d0)
-!call mat_mul(n+2,a1_inv,b1,hat_Psi_T)
-!call mat_mul(n+2,a2_inv,b2,hat_Psi_P)
-!call mat_mul(n+2,a3_inv,b3,hat_Tem)
+ call mat_mul(n+2,a1_inv,b1,hat_Psi_T)
+ call mat_mul(n+4,a2_inv,b2,hat_Psi_P)
+ call mat_mul(n+2,a3_inv,b3,hat_Tem)
  write(1,'(4E15.6)') time, hat_Psi_T(1), hat_Psi_P(1), hat_Tem(1)
 enddo
 
-! output module of Psi_T, Psi_P, Tem
-call spec_to_phys(hat_Psi_T,Psi_T)
-call spec_to_phys(hat_Psi_P,Psi_P)
-call spec_to_phys(hat_Tem,Tem)
+! output Psi_T, Psi_P, Tem
+call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x)
+call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x)
+call spec_to_phys(n+2,hat_Tem,n,Tem,x)
+do i=1,n
+ write(1,'(4E15.6)') z(i), Psi_T(i), Psi_P(i), Tem(i)
+enddo
 end program main
 
-subroutine spec_to_phys(spec,phys)
-use globe
+subroutine spec_to_phys(ns,spec,np,phys,x)
 implicit none
-integer i, j
-double complex phys(0:n+1), spec(0:n+1)
-double precision TTT
-do i=0,n+1
+integer i, j, ns, np
+double complex spec(ns), phys(np)
+double precision x(np), TTT
+do i=1,np
  phys(i)=0.d0
- do j=0, n+1
+ do j=1, ns
   phys(i)=phys(i)+spec(j)*TTT(0,j,x(i))
  enddo
 enddo
 end subroutine spec_to_phys
 
-subroutine phys_to_spec(phys,spec)
-use globe
-implicit none
-integer i, j
-double complex phys(0:n+1), spec(0:n+1)
-double precision TTT, a(0:n+1,0:n+1)
-do j=0, n+1
- do i=0, n+1
-  a(i,j)=TTT(0,j,x(i))
- enddo
-enddo
-!call r8mat_fs(n+2,a,phys,spec)
-end subroutine phys_to_spec
-
 subroutine mat_inv(n,a,b)
 implicit none
-integer n
+integer i, j, n
 double complex a(n,n), b(n,n)
 double precision RINT(n), DETR, DETI
 integer IDETE, IFAIL
-call F03AHF(n,A,n,DETR,DETI,IDETE,RINT,IFAIL)
-call F04AKF(n,n,A,n,RINT,b,n)
+do i=1, n
+ do j=1, n
+  b(i,j)=(0.d0, 0.d0)
+  if(i.eq.j) b(i,j)=(1.d0, 0.d0)
+ enddo
+enddo
+call F03AHF(n,a,n,DETR,DETI,IDETE,RINT,IFAIL)
+call F04AKF(n,n,a,n,RINT,b,n)
 end subroutine mat_inv
 
 subroutine mat_mul(n,a,b,c)
 implicit none
-integer i, j, k, n
-double complex a(n,n), b(n,n), c(n,n)
+integer i, k, n
+double complex a(n,n), b(n), c(n)
 do i=1,n
- do j=1,n
-  c(i,j)=0.d0
-  do k=1,n
-   c(i,j)=c(i,j)+a(i,k)*b(k,j)
-  enddo
+ c(i)=0.d0
+ do k=1,n
+  c(i)=c(i)+a(i,k)*b(k)
  enddo
 enddo
 end subroutine mat_mul
