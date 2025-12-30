@@ -5,19 +5,16 @@ program main
 implicit none
 double precision pi
 double complex one
-integer n
+integer i, j, n
 parameter (n=10)
-double precision x(n)
-integer i, j
+double precision x(n), z(n), TTT
 double precision Ek, Pr, epsilon, R_c, delta_R, k_x, k_y, k_z, k2_perp, k2, time, dt
-double precision z(n)
-double precision ini_re, ini_im
 double complex Psi_T(n),       Psi_P(n),       Tem(n)    	  ! spectral coefficients about (z,t)
 double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	  ! Chebyshev coefficients about t
 double complex a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  		  ! coefficient matrices 
 double complex a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
 double complex b1(n+2), b2(n+4), b3(n+2)  			  ! right-hand-side
-double precision TTT
+double precision ini_re, ini_im
 integer it, nt
 parameter (nt=10000)
 
