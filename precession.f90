@@ -1,22 +1,22 @@
 ! gfortran -o precession precession.f90 nag.f
 ! z=(1/2)x, D=d/dz=2d/dx, D^2=4d/dx
-! Psi_T(x(i))=sum_j hat_Psi_T*TTT(0,j,x(i))
+! Psi_T(x(i))=sum_j hat_Psi_T*TTT(0,j-1,x(i))
 ! i=1~n: inner points; i=n+1, n+2, n+3 n+4: boundary conditions
 
 program main
 implicit none
 double precision pi
 double complex one
-integer i, j, n							  ! i is physical, j is spectral, n is dimension
-parameter (n=30)
-double precision x(n), z(n), TTT				  ! inner points
+integer i, j, n							    ! i is physical, j is spectral, n is dimension
+parameter (n=3)
+double precision x(n), z(n), TTT				    ! inner points
 double precision Ek, Pr, epsilon, R_c, delta_R, k_x, k_y, k_z, k2_perp, k2, time, dt
-double complex Psi_T(n),       Psi_P(n),       Tem(n)    	  ! spectral coefficients about (z,t)
-double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	  ! Chebyshev coefficients about t
-double complex a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  		  ! coefficient matrices 
-double complex a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
-double complex b1(n+2), b2(n+4), b3(n+2)  			  ! right-hand-side
-double precision energy1, energy2, energy3			  ! spectral energy sum_j(|hat_Psi_T|^2), ...
+double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! spectral coefficients about (z,t)
+double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t
+double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
+double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
+double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side
+double precision energy1, energy2, energy3			    ! spectral energy sum_j(|hat_Psi_T|^2), ...
 double precision ini_re, ini_im
 integer it, nt
 parameter (nt=100)
@@ -43,28 +43,28 @@ enddo
 ! collocate Psi_T equation on inner points
 do j=1, n+2
  do i=1, n
-  a1(i,j)=TTT(0,j,x(i))
+  a1(i,j)=TTT(0,j-1,x(i))
  enddo
 enddo
 ! collocate Psi_T equation on boundary points
 do j=1, n+2
- a1(n+1,j)=TTT(1,j,-1.d0)
- a1(n+2,j)=TTT(1,j,1.d0)
+ a1(n+1,j)=TTT(1,j-1,-1.d0)
+ a1(n+2,j)=TTT(1,j-1,1.d0)
 enddo
 b1(n+1)=(0.d0, 0.d0)
 b1(n+2)=(0.d0, 0.d0)
 ! collocate Psi_P equation on inner points
 do j=1, n+4
  do i=1, n
-  a2(i,j)=TTT(0,j,x(i))
+  a2(i,j)=TTT(0,j-1,x(i))
  enddo
 enddo
 ! collocate Psi_P equation on boundary points
 do j=1, n+4
- a2(n+1,j)=TTT(0,j,-1.d0)
- a2(n+2,j)=TTT(0,j,1.d0)
- a2(n+3,j)=TTT(2,j,-1.d0)
- a2(n+4,j)=TTT(2,j,1.d0)
+ a2(n+1,j)=TTT(0,j-1,-1.d0)
+ a2(n+2,j)=TTT(0,j-1,1.d0)
+ a2(n+3,j)=TTT(2,j-1,-1.d0)
+ a2(n+4,j)=TTT(2,j-1,1.d0)
 enddo
 b2(n+1)=(0.d0, 0.d0)
 b2(n+2)=(0.d0, 0.d0)
@@ -73,20 +73,37 @@ b2(n+4)=(0.d0, 0.d0)
 ! collocate Tem equation on inner points
 do j=1, n+2
  do i=1, n
-  a3(i,j)=TTT(0,j,x(i))
+  a3(i,j)=TTT(0,j-1,x(i))
  enddo
 enddo
 ! collocate Tem equation on boundary points
 do j=1, n+2
- a3(n+1,j)=TTT(0,j,-1.d0)
- a3(n+2,j)=TTT(0,j,1.d0)
+ a3(n+1,j)=TTT(0,j-1,-1.d0)
+ a3(n+2,j)=TTT(0,j-1,1.d0)
 enddo
 b3(n+1)=(0.d0, 0.d0)
 b3(n+2)=(0.d0, 0.d0)
+!!! test
+do i=1, n+2
+ write(6,'(5E15.6)') a1(i,:)
+enddo
+!!!
 ! calculate inverse of coefficient matrices a1, a2, a3 for time stepping
 call mat_inv(n+2,a1,a1_inv)
 call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
+!!! test
+energy1=0.d0
+energy2=0.d0
+do j=1, n+2
+ do i=1, n+2
+  energy1=energy1+abs(a1(i,j))**2
+  energy2=energy2+abs(a1_inv(i,j))**2
+ enddo
+enddo
+call energy(n+2,b1,energy3)
+write(6,*) energy1, energy2, energy3
+!!!
 
 ! give initial condition of Chebyshev coefficients
 call random_seed()
@@ -114,14 +131,20 @@ do it=1, nt
  call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x)
  call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x)
  call spec_to_phys(n+2,hat_Tem,n,Tem,x)
+!!! test
+if(it.eq.1) then 
+ call energy(n,Psi_T,energy1)
+ write(6,*) energy1
+endif
+!!!
  do i=1, n
   b1(i)=(0.d0, 0.d0)
   b2(i)=(0.d0, 0.d0)
   b3(i)=(0.d0, 0.d0)
   do j=1, n
-   b1(i)=b1(i)+TTT(2,j,x(i))*hat_Psi_T(j)+TTT(1,j,x(i))*hat_Psi_P(j)
-   b2(i)=b2(i)+TTT(2,j,x(i))**2*hat_Psi_P(j)-TTT(2,j,x(i))*hat_Psi_T(j)
-   b3(i)=b3(i)+TTT(2,j,x(i))*hat_Tem(j)+TTT(1,j,x(i))*hat_Psi_P(j)
+   b1(i)=b1(i)+TTT(2,j-1,x(i))*hat_Psi_T(j)+TTT(1,j-1,x(i))*hat_Psi_P(j)
+   b2(i)=b2(i)+TTT(2,j-1,x(i))**2*hat_Psi_P(j)-TTT(2,j-1,x(i))*hat_Psi_T(j)
+   b3(i)=b3(i)+TTT(2,j-1,x(i))*hat_Tem(j)+TTT(1,j-1,x(i))*hat_Psi_P(j)
   enddo
   b1(i)=Psi_T(i)+dt*b1(i)
   b2(i)=Psi_P(i)+dt*b2(i)
@@ -129,7 +152,7 @@ do it=1, nt
  enddo
 !!! test
 if(it.eq.1) then 
- call energy(n,b1,energy1)
+ call energy(n+2,b1,energy1)
  write(6,*) energy1
 endif
 !!!
@@ -161,26 +184,26 @@ do i=1,np
 enddo
 end subroutine spec_to_phys
 
-subroutine mat_inv(n,a,b)
+subroutine mat_inv(n,a,c)
 implicit none
 integer i, j, n
-double complex a(n,n), b(n,n)
-double precision RINT(n), DETR, DETI
-integer IDETE, IFAIL
+double precision a(n,n), b(n,n), c(n,n)
+double precision WKSPCE(n), AA(n,n), BB(n,n)
+integer IFAIL
 do i=1, n
  do j=1, n
-  b(i,j)=(0.d0, 0.d0)
-  if(i.eq.j) b(i,j)=(1.d0, 0.d0)
+  b(i,j)=0.d0
+  if(i.eq.j) b(i,j)=1.d0
  enddo
 enddo
-call F03AHF(n,a,n,DETR,DETI,IDETE,RINT,IFAIL)
-call F04AKF(n,n,a,n,RINT,b,n)
+call F04AEF(a,n,b,n,n,n,c,n,WKSPCE,AA,n,BB,n,IFAIL)
 end subroutine mat_inv
 
 subroutine mat_mul(n,a,b,c)
 implicit none
 integer i, k, n
-double complex a(n,n), b(n), c(n)
+double precision a(n,n)
+double complex b(n), c(n)
 do i=1,n
  c(i)=0.d0
  do k=1,n
