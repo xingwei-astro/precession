@@ -1,22 +1,25 @@
 ! gfortran -o precession precession.f90 nag.f
 ! z=(1/2)x, D=d/dz=2d/dx, D^2=4d/dx
+! Psi_T(x(i))=sum_j hat_Psi_T*TTT(0,j,x(i))
+! i=1~n: inner points; i=n+1, n+2, n+3 n+4: boundary conditions
 
 program main
 implicit none
 double precision pi
 double complex one
-integer i, j, n
-parameter (n=10)
-double precision x(n), z(n), TTT
+integer i, j, n							  ! i is physical, j is spectral, n is dimension
+parameter (n=30)
+double precision x(n), z(n), TTT				  ! inner points
 double precision Ek, Pr, epsilon, R_c, delta_R, k_x, k_y, k_z, k2_perp, k2, time, dt
 double complex Psi_T(n),       Psi_P(n),       Tem(n)    	  ! spectral coefficients about (z,t)
 double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	  ! Chebyshev coefficients about t
 double complex a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  		  ! coefficient matrices 
 double complex a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
 double complex b1(n+2), b2(n+4), b3(n+2)  			  ! right-hand-side
+double precision energy1, energy2, energy3			  ! spectral energy sum_j(|hat_Psi_T|^2), ...
 double precision ini_re, ini_im
 integer it, nt
-parameter (nt=10000)
+parameter (nt=100)
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
@@ -33,7 +36,7 @@ delta_R=1.d-3
 
 ! inner points
 do i=1,n
- x(i)=-cos(pi/dfloat(n)*(i-0.5d0))
+ x(i)=-cos((2*dfloat(i)-1)/(2*dfloat(n))*pi)
  z(i)=x(i)/2.d0
 enddo
 
@@ -51,13 +54,13 @@ enddo
 b1(n+1)=(0.d0, 0.d0)
 b1(n+2)=(0.d0, 0.d0)
 ! collocate Psi_P equation on inner points
-do j=1, n+2
+do j=1, n+4
  do i=1, n
   a2(i,j)=TTT(0,j,x(i))
  enddo
 enddo
 ! collocate Psi_P equation on boundary points
-do j=1, n+2
+do j=1, n+4
  a2(n+1,j)=TTT(0,j,-1.d0)
  a2(n+2,j)=TTT(0,j,1.d0)
  a2(n+3,j)=TTT(2,j,-1.d0)
@@ -85,45 +88,63 @@ call mat_inv(n+2,a1,a1_inv)
 call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
-! give initial condition
+! give initial condition of Chebyshev coefficients
 call random_seed()
-do i=1, 10  			! the first 10 Chebyshev coefficients are non-zero and others are zero
+do j=1, n+2
  call random_number(ini_re)
  call random_number(ini_im)
- hat_Psi_T(i)=ini_re+one*ini_im
+ hat_Psi_T(j)=ini_re+one*ini_im
+enddo
+do j=1, n+4
  call random_number(ini_re)
  call random_number(ini_im)
- hat_Psi_P(i)=ini_re+one*ini_im
+ hat_Psi_P(j)=ini_re+one*ini_im
+enddo
+do j=1, n+2
  call random_number(ini_re)
  call random_number(ini_im)
- hat_Tem(i)=ini_re+one*ini_im
+ hat_Tem(j)=ini_re+one*ini_im
 enddo
 
 ! time stepping
 time=0.d0
-dt=1.d-1
+dt=1.d-6
 do it=1, nt
  time=time+it*dt
  call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x)
  call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x)
  call spec_to_phys(n+2,hat_Tem,n,Tem,x)
  do i=1, n
-  b1(i)=(dt*TTT(2,j,x(i))+TTT(0,j,x(i)))*Psi_T(i)
-  b2(i)=(dt*TTT(2,j,x(i))+TTT(0,j,x(i)))*Psi_P(i)
-  b3(i)=(dt*TTT(2,j,x(i))+TTT(0,j,x(i)))*Tem(i)
+  b1(i)=(0.d0, 0.d0)
+  b2(i)=(0.d0, 0.d0)
+  b3(i)=(0.d0, 0.d0)
+  do j=1, n
+   b1(i)=b1(i)+TTT(2,j,x(i))*hat_Psi_T(j)+TTT(1,j,x(i))*hat_Psi_P(j)
+   b2(i)=b2(i)+TTT(2,j,x(i))**2*hat_Psi_P(j)-TTT(2,j,x(i))*hat_Psi_T(j)
+   b3(i)=b3(i)+TTT(2,j,x(i))*hat_Tem(j)+TTT(1,j,x(i))*hat_Psi_P(j)
+  enddo
+  b1(i)=Psi_T(i)+dt*b1(i)
+  b2(i)=Psi_P(i)+dt*b2(i)
+  b2(i)=Tem(i)+dt*b3(i)
  enddo
+!!! test
+if(it.eq.1) then 
+ call energy(n,b1,energy1)
+ write(6,*) energy1
+endif
+!!!
  call mat_mul(n+2,a1_inv,b1,hat_Psi_T)
  call mat_mul(n+4,a2_inv,b2,hat_Psi_P)
  call mat_mul(n+2,a3_inv,b3,hat_Tem)
- write(1,'(4E15.6)') time, hat_Psi_T(1), hat_Psi_P(1), hat_Tem(1)
+ call energy(n+2,hat_Psi_T,energy1)
+ call energy(n+4,hat_Psi_P,energy2)
+ call energy(n+2,hat_Tem,energy3)
+ write(1,'(4E15.6)') time, energy1, energy2, energy3
 enddo
 
 ! output Psi_T, Psi_P, Tem
-call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x)
-call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x)
-call spec_to_phys(n+2,hat_Tem,n,Tem,x)
 do i=1,n
- write(1,'(4E15.6)') z(i), Psi_T(i), Psi_P(i), Tem(i)
+ write(2,'(4E15.6)') z(i), abs(Psi_T(i)), abs(Psi_P(i)), abs(Tem(i))
 enddo
 end program main
 
@@ -167,6 +188,17 @@ do i=1,n
  enddo
 enddo
 end subroutine mat_mul
+
+subroutine energy(n,a,x)
+implicit none
+integer i, n
+double complex a(n)
+double precision x
+x=0.d0
+do i=1, n
+ x=x+abs(a(i))**2
+enddo
+end subroutine energy
 
 !!!   TTT(K,M,X) = the K-th derivative of Tm(X), the M-th Chebyshev polynomial evaluated at X.
 
