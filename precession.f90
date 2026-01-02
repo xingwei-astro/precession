@@ -1,25 +1,31 @@
 ! gfortran -o precession precession.f90 nag.f
-! z=(1/2)x, D=d/dz=2d/dx, D^2=4d/dx
-! Psi_T(x(i))=sum_j hat_Psi_T*TTT(0,j-1,x(i))
+! diffusion terms implicit, the other terms explicit, (d/dt-E(D^2-k_perp^2))Psi_T=...
+! z=(1/2)x, D=d/dz=2d/dx, D^2=4d/dx, D^4=16d/dx
+! Psi_T(x(i))=sum_j hat_Psi_T(j)*TTT(0,j-1,x(i)), j from 1 and j-1 from 0
 ! i=1~n: inner points; i=n+1, n+2, n+3 n+4: boundary conditions
 
 program main
 implicit none
 double precision pi
 double complex one
-integer i, j, n							    ! i is physical, j is spectral, n is dimension
-parameter (n=3)
+integer i, j, n							    ! i physical, j spectral, n dimension
+parameter (n=50)
 double precision x(n), z(n), TTT				    ! inner points
-double precision Ek, Pr, epsilon, R_c, delta_R, k_x, k_y, k_z, k2_perp, k2, time, dt
-double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! spectral coefficients about (z,t)
-double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t
+double precision Ek, Pr, epsilon, R_c, delta_R			    ! dimensionless parameters
+double precision k_x, k_y, k_z, k2_perp, k2			    ! wavenumbers
+double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! coefficients about (z,t) -- physical space
+double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t -- spectral space
 double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
 double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
-double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side
+double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side terms
 double precision energy1, energy2, energy3			    ! spectral energy sum_j(|hat_Psi_T|^2), ...
-double precision ini_re, ini_im
-integer it, nt
-parameter (nt=100)
+double precision energy1_0, energy2_0, energy3_0		    ! spectral energy at the last time step
+double precision sigma1, sigma2, sigma3				    ! spectral energy growth rate
+double precision ini_re, ini_im					    ! for random initial condition
+integer it, nt							    ! time step
+parameter (nt=100)	
+double precision dt, time, c1, c2				    ! c1 and c2 are coefficients of precesion terms
+double complex D1_Psi_T(n), D1_Psi_P(n), D2_Psi_P(n)		    ! derivatives of Psi_T and Psi_P
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
@@ -31,8 +37,10 @@ k_y=pi
 k_z=pi
 k2_perp=k_x**2+k_y**2
 k2=k2_perp+k_z**2
-R_c=4.d0*k_z**2/k2_perp*2.d0*Pr/(1.d0+Pr)+2.d0*Ek**2*(1.d0+1.d0/Pr)*k2**3/k2_perp
+R_c=4.d0*k_z**2/k2_perp+Ek**2*k2**3/k2_perp*(1.d0+2.d0/Pr)*(1.d0+1.d0/Pr)
+write(6,*) 'R_c=', R_c
 delta_R=1.d-3
+dt=1.d-2
 
 ! inner points
 do i=1,n
@@ -43,7 +51,7 @@ enddo
 ! collocate Psi_T equation on inner points
 do j=1, n+2
  do i=1, n
-  a1(i,j)=TTT(0,j-1,x(i))
+  a1(i,j)=1.d0/dt*TTT(0,j-1,x(i))-Ek*(4*TTT(2,j-1,x(i))-k2_perp*TTT(0,j-1,x(i)))
  enddo
 enddo
 ! collocate Psi_T equation on boundary points
@@ -56,7 +64,7 @@ b1(n+2)=(0.d0, 0.d0)
 ! collocate Psi_P equation on inner points
 do j=1, n+4
  do i=1, n
-  a2(i,j)=TTT(0,j-1,x(i))
+  a2(i,j)=1.d0/dt*TTT(0,j-1,x(i))-Ek*(16*TTT(4,j-1,x(i))-8*k2_perp*TTT(2,j-1,x(i))+k2_perp**2*TTT(0,j-1,x(i)))
  enddo
 enddo
 ! collocate Psi_P equation on boundary points
@@ -73,7 +81,7 @@ b2(n+4)=(0.d0, 0.d0)
 ! collocate Tem equation on inner points
 do j=1, n+2
  do i=1, n
-  a3(i,j)=TTT(0,j-1,x(i))
+  a3(i,j)=1.d0/dt*TTT(0,j-1,x(i))-Ek/Pr*(4*TTT(2,j-1,x(i))-k2_perp*TTT(0,j-1,x(i)))
  enddo
 enddo
 ! collocate Tem equation on boundary points
@@ -83,27 +91,10 @@ do j=1, n+2
 enddo
 b3(n+1)=(0.d0, 0.d0)
 b3(n+2)=(0.d0, 0.d0)
-!!! test
-do i=1, n+2
- write(6,'(5E15.6)') a1(i,:)
-enddo
-!!!
 ! calculate inverse of coefficient matrices a1, a2, a3 for time stepping
 call mat_inv(n+2,a1,a1_inv)
 call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
-!!! test
-energy1=0.d0
-energy2=0.d0
-do j=1, n+2
- do i=1, n+2
-  energy1=energy1+abs(a1(i,j))**2
-  energy2=energy2+abs(a1_inv(i,j))**2
- enddo
-enddo
-call energy(n+2,b1,energy3)
-write(6,*) energy1, energy2, energy3
-!!!
 
 ! give initial condition of Chebyshev coefficients
 call random_seed()
@@ -124,62 +115,64 @@ do j=1, n+2
 enddo
 
 ! time stepping
-time=0.d0
-dt=1.d-6
 do it=1, nt
- time=time+it*dt
- call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x)
- call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x)
- call spec_to_phys(n+2,hat_Tem,n,Tem,x)
-!!! test
-if(it.eq.1) then 
- call energy(n,Psi_T,energy1)
- write(6,*) energy1
-endif
-!!!
+ time=it*dt
+ c1=one*k_x*sin(time)+one*k_y*cos(time)
+ c2=one*k_x*sin(time)-one*k_y*cos(time)
+ ! re-scale spectral coefficients with sqrt(energy) at each time step to prevent too large values
+ call energy(n+2,hat_Psi_T,energy1_0)
+ call energy(n+4,hat_Psi_P,energy2_0)
+ call energy(n+2,hat_Tem,energy3_0)
+ hat_Psi_T=hat_Psi_T/sqrt(energy1_0)
+ hat_Psi_P=hat_Psi_P/sqrt(energy2_0)
+ hat_Tem=hat_Tem/sqrt(energy3_0)
+ ! calculate the right-hand-side terms and multiply by inverse of coefficient matrices a1, a2, a3
+ call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
+ call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
+ call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
+ call spec_to_phys(n+2,hat_Psi_T,n,D1_Psi_T,x,1)
+ call spec_to_phys(n+4,hat_Psi_P,n,D1_Psi_P,x,1)
+ call spec_to_phys(n+4,hat_Psi_P,n,D2_Psi_P,x,2)
  do i=1, n
-  b1(i)=(0.d0, 0.d0)
-  b2(i)=(0.d0, 0.d0)
-  b3(i)=(0.d0, 0.d0)
-  do j=1, n
-   b1(i)=b1(i)+TTT(2,j-1,x(i))*hat_Psi_T(j)+TTT(1,j-1,x(i))*hat_Psi_P(j)
-   b2(i)=b2(i)+TTT(2,j-1,x(i))**2*hat_Psi_P(j)-TTT(2,j-1,x(i))*hat_Psi_T(j)
-   b3(i)=b3(i)+TTT(2,j-1,x(i))*hat_Tem(j)+TTT(1,j-1,x(i))*hat_Psi_P(j)
-  enddo
-  b1(i)=Psi_T(i)+dt*b1(i)
-  b2(i)=Psi_P(i)+dt*b2(i)
-  b2(i)=Tem(i)+dt*b3(i)
+  b1(i)=2*epsilon*(z(i)*c1*Psi_T(i)-2*c2*Psi_P(i))+2*D1_Psi_P(i)+Psi_T(i)/dt
+  b2(i)=2*epsilon*c1*(Psi_T(i)+z(i)*(D2_Psi_P(i)-k2_perp*Psi_P(i)))-2*D1_Psi_T(i)-(R_c+epsilon*delta_R)*Tem(i)
+  b3(i)=2*epsilon*z(i)*c1*Tem(i)+k2_perp*Psi_P(i)
  enddo
-!!! test
-if(it.eq.1) then 
- call energy(n+2,b1,energy1)
- write(6,*) energy1
-endif
-!!!
  call mat_mul(n+2,a1_inv,b1,hat_Psi_T)
  call mat_mul(n+4,a2_inv,b2,hat_Psi_P)
  call mat_mul(n+2,a3_inv,b3,hat_Tem)
+ ! diagnostic of spectral energy growth rate
  call energy(n+2,hat_Psi_T,energy1)
  call energy(n+4,hat_Psi_P,energy2)
  call energy(n+2,hat_Tem,energy3)
- write(1,'(4E15.6)') time, energy1, energy2, energy3
+ sigma1=log(energy1/energy1_0)/dt
+ sigma2=log(energy2/energy2_0)/dt
+ sigma3=log(energy3/energy3_0)/dt
+ write(1,'(4E15.6)') time, sigma1, sigma2, sigma3
 enddo
 
 ! output Psi_T, Psi_P, Tem
-do i=1,n
+hat_Psi_T=hat_Psi_T/sqrt(energy1)
+hat_Psi_P=hat_Psi_P/sqrt(energy2)
+hat_Tem=hat_Tem/sqrt(energy3)
+call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
+call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
+call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
+do i=1, n
  write(2,'(4E15.6)') z(i), abs(Psi_T(i)), abs(Psi_P(i)), abs(Tem(i))
 enddo
 end program main
 
-subroutine spec_to_phys(ns,spec,np,phys,x)
+!!! use Chebyshev spectral coefficients to calculate k-th derivative in physical space at points x
+subroutine spec_to_phys(ns,spec,np,phys,x,k)
 implicit none
-integer i, j, ns, np
+integer i, j, ns, np, k
 double complex spec(ns), phys(np)
 double precision x(np), TTT
-do i=1,np
+do i=1, np
  phys(i)=0.d0
  do j=1, ns
-  phys(i)=phys(i)+spec(j)*TTT(0,j,x(i))
+  phys(i)=phys(i)+spec(j)*TTT(k,j-1,x(i))*2.d0**k
  enddo
 enddo
 end subroutine spec_to_phys
@@ -190,11 +183,11 @@ integer i, j, n
 double precision a(n,n), b(n,n), c(n,n)
 double precision WKSPCE(n), AA(n,n), BB(n,n)
 integer IFAIL
-do i=1, n
- do j=1, n
+do j=1, n
+ do i=1, n
   b(i,j)=0.d0
-  if(i.eq.j) b(i,j)=1.d0
  enddo
+ b(j,j)=1.d0
 enddo
 call F04AEF(a,n,b,n,n,n,c,n,WKSPCE,AA,n,BB,n,IFAIL)
 end subroutine mat_inv
@@ -224,7 +217,6 @@ enddo
 end subroutine energy
 
 !!!   TTT(K,M,X) = the K-th derivative of Tm(X), the M-th Chebyshev polynomial evaluated at X.
-
       DOUBLE PRECISION FUNCTION TTT(K,M,X)
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
       DIMENSION A(0:10000), B(0:10000)
@@ -256,4 +248,3 @@ end subroutine energy
 20    CONTINUE
       RETURN
       END
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
