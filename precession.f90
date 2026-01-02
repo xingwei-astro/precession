@@ -21,8 +21,7 @@ double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side terms
 double precision energy1, energy2, energy3			    ! spectral energy sum_j(|hat_Psi_T|^2), ...
 double precision energy1_0, energy2_0, energy3_0		    ! spectral energy at the last time step
 double precision sigma1, sigma2, sigma3				    ! spectral energy growth rate
-double precision ini_re, ini_im					    ! for random initial condition
-integer it, nt							    ! time step
+integer it, nt							    ! time steps
 parameter (nt=100)	
 double precision dt, time, c1, c2				    ! c1 and c2 are coefficients of precesion terms
 double complex D1_Psi_T(n), D1_Psi_P(n), D2_Psi_P(n)		    ! derivatives of Psi_T and Psi_P
@@ -40,7 +39,7 @@ k2=k2_perp+k_z**2
 R_c=4.d0*k_z**2/k2_perp+Ek**2*k2**3/k2_perp*(1.d0+2.d0/Pr)*(1.d0+1.d0/Pr)
 write(6,*) 'R_c=', R_c
 delta_R=1.d-3
-dt=1.d-2
+dt=1.d0
 
 ! inner points
 do i=1,n
@@ -96,22 +95,15 @@ call mat_inv(n+2,a1,a1_inv)
 call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
-! give initial condition of Chebyshev coefficients
-call random_seed()
+! initial condition of Chebyshev coefficients
 do j=1, n+2
- call random_number(ini_re)
- call random_number(ini_im)
- hat_Psi_T(j)=ini_re+one*ini_im
+ hat_Psi_T(j)=1.d-1/dfloat(j)
 enddo
 do j=1, n+4
- call random_number(ini_re)
- call random_number(ini_im)
- hat_Psi_P(j)=ini_re+one*ini_im
+ hat_Psi_P(j)=1.d-1/dfloat(j)
 enddo
 do j=1, n+2
- call random_number(ini_re)
- call random_number(ini_im)
- hat_Tem(j)=ini_re+one*ini_im
+ hat_Tem(j)=1.d-1/dfloat(j)
 enddo
 
 ! time stepping
@@ -126,7 +118,7 @@ do it=1, nt
  hat_Psi_T=hat_Psi_T/sqrt(energy1_0)
  hat_Psi_P=hat_Psi_P/sqrt(energy2_0)
  hat_Tem=hat_Tem/sqrt(energy3_0)
- ! calculate the right-hand-side terms and multiply by inverse of coefficient matrices a1, a2, a3
+ ! calculate right-hand-side terms
  call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
  call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
  call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
@@ -138,6 +130,7 @@ do it=1, nt
   b2(i)=2*epsilon*c1*(Psi_T(i)+z(i)*(D2_Psi_P(i)-k2_perp*Psi_P(i)))-2*D1_Psi_T(i)-(R_c+epsilon*delta_R)*Tem(i)
   b3(i)=2*epsilon*z(i)*c1*Tem(i)+k2_perp*Psi_P(i)
  enddo
+ ! multiply by inverse of coefficient matrices to update spectral coefficients
  call mat_mul(n+2,a1_inv,b1,hat_Psi_T)
  call mat_mul(n+4,a2_inv,b2,hat_Psi_P)
  call mat_mul(n+2,a3_inv,b3,hat_Tem)
