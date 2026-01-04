@@ -18,9 +18,9 @@ double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coe
 double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
 double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
 double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side terms
-double precision energy1, energy2, energy3			    ! spectral energy sum_j(|hat_Psi_T|^2), ...
-double precision energy1_0, energy2_0, energy3_0		    ! spectral energy at the last time step
-double precision sigma1, sigma2, sigma3				    ! spectral energy growth rate
+double precision energy1_0, energy2_0, energy3_0, energy_0	    ! spectral energy at the last timestep
+double precision energy1_1, energy2_1, energy3_1, energy_1	    ! spectral energy at the next timestep
+double precision sigma						    ! growth rate
 integer it, nt							    ! time steps
 parameter (nt=100)	
 double precision dt, time, c1, c2				    ! c1 and c2 are coefficients of precesion terms
@@ -55,23 +55,24 @@ do j=1, n+2
 enddo
 ! collocate Psi_T equation on boundary points
 do j=1, n+2
- a1(n+1,j)=TTT(1,j-1,-1.d0)
- a1(n+2,j)=TTT(1,j-1,1.d0)
+ a1(n+1,j)=2.d0*TTT(1,j-1,-1.d0)
+ a1(n+2,j)=2.d0*TTT(1,j-1,1.d0)
 enddo
 b1(n+1)=(0.d0, 0.d0)
 b1(n+2)=(0.d0, 0.d0)
 ! collocate Psi_P equation on inner points
 do j=1, n+4
  do i=1, n
-  a2(i,j)=1.d0/dt*TTT(0,j-1,x(i))-Ek*(16*TTT(4,j-1,x(i))-8*k2_perp*TTT(2,j-1,x(i))+k2_perp**2*TTT(0,j-1,x(i)))
+  a2(i,j)=1.d0/dt*(4*TTT(2,j-1,x(i))-k2_perp*TTT(0,j-1,x(i))) &
+          -Ek*(16*TTT(4,j-1,x(i))-8*k2_perp*TTT(2,j-1,x(i))+k2_perp**2*TTT(0,j-1,x(i)))
  enddo
 enddo
 ! collocate Psi_P equation on boundary points
 do j=1, n+4
  a2(n+1,j)=TTT(0,j-1,-1.d0)
  a2(n+2,j)=TTT(0,j-1,1.d0)
- a2(n+3,j)=TTT(2,j-1,-1.d0)
- a2(n+4,j)=TTT(2,j-1,1.d0)
+ a2(n+3,j)=4.d0*TTT(2,j-1,-1.d0)
+ a2(n+4,j)=4.d0*TTT(2,j-1,1.d0)
 enddo
 b2(n+1)=(0.d0, 0.d0)
 b2(n+2)=(0.d0, 0.d0)
@@ -115,9 +116,10 @@ do it=1, nt
  call energy(n+2,hat_Psi_T,energy1_0)
  call energy(n+4,hat_Psi_P,energy2_0)
  call energy(n+2,hat_Tem,energy3_0)
- hat_Psi_T=hat_Psi_T/sqrt(energy1_0)
- hat_Psi_P=hat_Psi_P/sqrt(energy2_0)
- hat_Tem=hat_Tem/sqrt(energy3_0)
+ energy_0=energy1_0+energy2_0+energy3_0
+ hat_Psi_T=hat_Psi_T/sqrt(energy_0)
+ hat_Psi_P=hat_Psi_P/sqrt(energy_0)
+ hat_Tem=hat_Tem/sqrt(energy_0)
  ! calculate right-hand-side terms
  call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
  call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
@@ -127,27 +129,27 @@ do it=1, nt
  call spec_to_phys(n+4,hat_Psi_P,n,D2_Psi_P,x,2)
  do i=1, n
   b1(i)=2*epsilon*(z(i)*c1*Psi_T(i)-2*c2*Psi_P(i))+2*D1_Psi_P(i)+Psi_T(i)/dt
-  b2(i)=2*epsilon*c1*(Psi_T(i)+z(i)*(D2_Psi_P(i)-k2_perp*Psi_P(i)))-2*D1_Psi_T(i)-(R_c+epsilon*delta_R)*Tem(i)
-  b3(i)=2*epsilon*z(i)*c1*Tem(i)+k2_perp*Psi_P(i)
+  b2(i)=2*epsilon*c1*(Psi_T(i)+z(i)*(D2_Psi_P(i)-k2_perp*Psi_P(i)))-2*D1_Psi_T(i) &
+        -(R_c+epsilon*delta_R)*Tem(i)+(D2_Psi_P(i)-k2_perp*Psi_P(i))/dt
+  b3(i)=2*epsilon*z(i)*c1*Tem(i)+k2_perp*Psi_P(i)+Tem(i)/dt
  enddo
  ! multiply by inverse of coefficient matrices to update spectral coefficients
  call mat_mul(n+2,a1_inv,b1,hat_Psi_T)
  call mat_mul(n+4,a2_inv,b2,hat_Psi_P)
  call mat_mul(n+2,a3_inv,b3,hat_Tem)
  ! diagnostic of spectral energy growth rate
- call energy(n+2,hat_Psi_T,energy1)
- call energy(n+4,hat_Psi_P,energy2)
- call energy(n+2,hat_Tem,energy3)
- sigma1=log(energy1/energy1_0)/dt
- sigma2=log(energy2/energy2_0)/dt
- sigma3=log(energy3/energy3_0)/dt
- write(1,'(4E15.6)') time, sigma1, sigma2, sigma3
+ call energy(n+2,hat_Psi_T,energy1_1)
+ call energy(n+4,hat_Psi_P,energy2_1)
+ call energy(n+2,hat_Tem,energy3_1)
+ energy_1=energy1_1+energy2_1+energy3_1
+ sigma=log(energy_1/energy_0)/dt
+ write(1,'(2E15.6)') time, sigma
 enddo
 
 ! output Psi_T, Psi_P, Tem
-hat_Psi_T=hat_Psi_T/sqrt(energy1)
-hat_Psi_P=hat_Psi_P/sqrt(energy2)
-hat_Tem=hat_Tem/sqrt(energy3)
+hat_Psi_T=hat_Psi_T/sqrt(energy_1)
+hat_Psi_P=hat_Psi_P/sqrt(energy_1)
+hat_Tem=hat_Tem/sqrt(energy_1)
 call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
 call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
 call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
