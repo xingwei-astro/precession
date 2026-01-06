@@ -22,7 +22,7 @@ double precision energy1_0, energy2_0, energy3_0, energy_0	    ! spectral energy
 double precision energy1_1, energy2_1, energy3_1, energy_1	    ! spectral energy at the next timestep
 double precision sigma						    ! growth rate
 integer it, nt							    ! time steps
-parameter (nt=100)	
+parameter (nt=10000)	
 double precision dt, time, c1, c2				    ! c1 and c2 are coefficients of precesion terms
 double complex D1_Psi_T(n), D1_Psi_P(n), D2_Psi_P(n)		    ! derivatives of Psi_T and Psi_P
 
@@ -30,16 +30,16 @@ pi=acos(-1.d0)
 one=(0.d0, 1.d0)
 Ek=1.d-4
 Pr=1.d0
-epsilon=1.d-6
+epsilon=1.d-3
 k_x=pi
 k_y=pi
 k_z=pi
 k2_perp=k_x**2+k_y**2
 k2=k2_perp+k_z**2
 R_c=4.d0*k_z**2/k2_perp+Ek**2*k2**3/k2_perp*(1.d0+2.d0/Pr)*(1.d0+1.d0/Pr)
-write(6,*) 'R_c=', R_c
-delta_R=1.d-3
-dt=1.d0
+write(6,*) 'R_c=', R_c, 'k_perp=', sqrt(k2_perp)
+delta_R=1.d-1
+dt=1.d-1
 
 ! inner points
 do i=1,n
