@@ -22,13 +22,14 @@ double precision energy1_0, energy2_0, energy3_0, energy_0	    ! spectral energy
 double precision energy1_1, energy2_1, energy3_1, energy_1	    ! spectral energy at the next timestep
 double precision sigma						    ! growth rate
 integer it, nt							    ! time steps
-parameter (nt=100000)	
+parameter (nt=10000)	
 double precision dt, time, c1, c2				    ! c1 and c2 are coefficients of precesion terms
 double complex D1_Psi_T(n), D1_Psi_P(n), D2_Psi_P(n)		    ! derivatives of Psi_T and Psi_P
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-Ek=1.d-4
+!Ek=1.d-4
+Ek=0.d0
 Pr=1.d0
 epsilon=2.d-1
 k_x=pi/0.222
@@ -41,7 +42,8 @@ R_c=0.d0
 !delta_R=1.d-1
 delta_R=0.d0
 dt=1.d-2
-write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, 'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
+write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
+                            'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
 ! inner points
 do i=1,n
@@ -114,15 +116,15 @@ do it=1, nt
  time=it*dt
  c1=one*k_x*sin(time)+one*k_y*cos(time)
  c2=one*k_x*sin(time)-one*k_y*cos(time)
- ! re-scale spectral coefficients with sqrt(energy) at each time step to prevent too large values
+ ! calculate spectral energy before update
  call energy(n+2,hat_Psi_T,energy1_0)
  call energy(n+4,hat_Psi_P,energy2_0)
  call energy(n+2,hat_Tem,energy3_0)
  energy_0=energy1_0+energy2_0+energy3_0
- hat_Psi_T=hat_Psi_T/sqrt(energy_0)
- hat_Psi_P=hat_Psi_P/sqrt(energy_0)
- hat_Tem=hat_Tem/sqrt(energy_0)
- ! calculate right-hand-side terms
+! hat_Psi_T=hat_Psi_T/sqrt(energy_0)
+! hat_Psi_P=hat_Psi_P/sqrt(energy_0)
+! hat_Tem=hat_Tem/sqrt(energy_0)
+! calculate right-hand-side terms
  call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
  call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
  call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
@@ -139,12 +141,12 @@ do it=1, nt
  call mat_mul(n+2,a1_inv,b1,hat_Psi_T)
  call mat_mul(n+4,a2_inv,b2,hat_Psi_P)
  call mat_mul(n+2,a3_inv,b3,hat_Tem)
- ! diagnostic of spectral energy growth rate
+ ! calculate spectral energy after update and output growth rate
  call energy(n+2,hat_Psi_T,energy1_1)
  call energy(n+4,hat_Psi_P,energy2_1)
  call energy(n+2,hat_Tem,energy3_1)
  energy_1=energy1_1+energy2_1+energy3_1
- sigma=log(energy_1/energy_0)/dt
+ sigma=log(energy_1/energy_0)/dt/2.d0
  write(1,'(2E15.6)') time, sigma
 enddo
 
