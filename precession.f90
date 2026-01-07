@@ -17,14 +17,14 @@ double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! coefficients abo
 double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t -- spectral space
 double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
 double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
-double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side terms
-double precision energy1_0, energy2_0, energy3_0, energy_0	    ! spectral energy at the last timestep
-double precision energy1_1, energy2_1, energy3_1, energy_1	    ! spectral energy at the next timestep
-double precision sigma						    ! growth rate
 integer it, nt							    ! time steps
-parameter (nt=10000)	
-double precision dt, time, c1, c2				    ! c1 and c2 are coefficients of precesion terms
+parameter (nt=100000)	
+double precision dt, time, c1, c2				    ! c1 and c2 are coefficients of precession terms
 double complex D1_Psi_T(n), D1_Psi_P(n), D2_Psi_P(n)		    ! derivatives of Psi_T and Psi_P
+double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side terms
+double precision energy1_0, energy2_0, energy3_0		    ! spectral energy at the last timestep
+double precision energy1_1, energy2_1, energy3_1		    ! spectral energy at the next timestep
+double precision sigma_u, sigma_T				    ! growth rate
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
@@ -32,8 +32,8 @@ one=(0.d0, 1.d0)
 Ek=0.d0
 Pr=1.d0
 epsilon=2.d-1
-k_x=pi/0.222
-k_y=pi/0.222
+k_x=10.d0*pi
+k_y=10.d0*pi
 k_z=pi
 k2_perp=k_x**2+k_y**2
 k2=k2_perp+k_z**2
@@ -41,7 +41,7 @@ k2=k2_perp+k_z**2
 R_c=0.d0
 !delta_R=1.d-1
 delta_R=0.d0
-dt=1.d-2
+dt=1.d-1
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
@@ -120,11 +120,11 @@ do it=1, nt
  call energy(n+2,hat_Psi_T,energy1_0)
  call energy(n+4,hat_Psi_P,energy2_0)
  call energy(n+2,hat_Tem,energy3_0)
- energy_0=energy1_0+energy2_0+energy3_0
-! hat_Psi_T=hat_Psi_T/sqrt(energy_0)
-! hat_Psi_P=hat_Psi_P/sqrt(energy_0)
-! hat_Tem=hat_Tem/sqrt(energy_0)
-! calculate right-hand-side terms
+ ! rescale by energy to avoid too large value
+ !hat_Psi_T=hat_Psi_T/sqrt(energy1_0+energy2_0+energy3_0)
+ !hat_Psi_P=hat_Psi_P/sqrt(energy1_0+energy2_0+energy3_0)
+ !hat_Tem=hat_Tem/sqrt(energy1_0+energy2_0+energy3_0)
+ ! calculate right-hand-side terms
  call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
  call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
  call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
@@ -145,15 +145,15 @@ do it=1, nt
  call energy(n+2,hat_Psi_T,energy1_1)
  call energy(n+4,hat_Psi_P,energy2_1)
  call energy(n+2,hat_Tem,energy3_1)
- energy_1=energy1_1+energy2_1+energy3_1
- sigma=log(energy_1/energy_0)/dt/2.d0
- write(1,'(2E15.6)') time, sigma
+ sigma_u=log((energy1_1+energy2_1)/(energy1_0+energy2_0))/(2.d0*dt)
+ sigma_T=log(energy3_1/energy3_0)/(2.d0*dt)
+ write(1,'(3E15.6)') time, sigma_u, sigma_T
 enddo
 
 ! output Psi_T, Psi_P, Tem
-hat_Psi_T=hat_Psi_T/sqrt(energy_1)
-hat_Psi_P=hat_Psi_P/sqrt(energy_1)
-hat_Tem=hat_Tem/sqrt(energy_1)
+hat_Psi_T=hat_Psi_T/sqrt(energy1_1)
+hat_Psi_P=hat_Psi_P/sqrt(energy2_1)
+hat_Tem=hat_Tem/sqrt(energy3_1)
 call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
 call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
 call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
