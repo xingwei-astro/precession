@@ -17,8 +17,7 @@ double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! coefficients abo
 double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t -- spectral space
 double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
 double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
-integer it, nt							    ! time steps
-parameter (nt=10000)	
+integer it, nt							    ! time steps	
 double precision dt, time, c1, c2				    ! c1 and c2 are coefficients of precession terms
 double complex D1_Psi_T(n), D2_Psi_T(n)				    ! derivatives of Psi_T
 double complex D1_Psi_P(n), D2_Psi_P(n), D4_Psi_P(n)		    ! derivatives of Psi_P
@@ -32,7 +31,7 @@ pi=acos(-1.d0)
 one=(0.d0, 1.d0)
 Ek=1.d-4
 Pr=1.d0
-epsilon=4.d-1
+epsilon=5.d-1
 k_x=5.d0*pi
 k_y=5.d0*pi
 k_z=pi
@@ -43,6 +42,7 @@ R_c=0.d0
 !delta_R=1.d-1
 delta_R=0.d0
 dt=1.d-2
+nt=100000
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
