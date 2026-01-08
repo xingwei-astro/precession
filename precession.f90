@@ -31,18 +31,17 @@ pi=acos(-1.d0)
 one=(0.d0, 1.d0)
 Ek=1.d-4
 Pr=1.d0
-epsilon=1.d0
-k_x=sqrt(15.d0)*pi
+epsilon=0.2d0
+k_x=sqrt(15.d0)*pi		! resonance condition of two inertial waves
 k_y=0.d0
 k_z=pi
 k2_perp=k_x**2+k_y**2
 k2=k2_perp+k_z**2
 !R_c=4.d0*k_z**2/k2_perp+Ek**2*k2**3/k2_perp*(1.d0+2.d0/Pr)*(1.d0+1.d0/Pr)
 R_c=0.d0
-!delta_R=1.d-1
 delta_R=0.d0
 dt=1.d-2
-nt=10000
+nt=200000
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
@@ -102,15 +101,24 @@ call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
 ! initial condition of Chebyshev coefficients
-do j=1, n+2
- hat_Psi_T(j)=1.d-1/dfloat(j)
-enddo
-do j=1, n+4
- hat_Psi_P(j)=1.d-1/dfloat(j)
-enddo
-do j=1, n+2
- hat_Tem(j)=1.d-1/dfloat(j)
-enddo
+!do j=1, n+2
+! hat_Psi_T(j)=1.d-1/dfloat(j)
+!enddo
+!do j=1, n+4
+! hat_Psi_P(j)=1.d-1/dfloat(j)
+!enddo
+!do j=1, n+2
+! hat_Tem(j)=1.d-1/dfloat(j)
+!enddo
+hat_Psi_T(:) = 0.d0
+hat_Tem(:)   = 0.d0
+hat_Psi_P(:) = 0.d0
+! k_z = pi mode
+hat_Psi_P(2) =  1.d-6
+hat_Psi_P(4) = -1.d-6
+! k_z = 2pi mode
+hat_Psi_P(3) =  1.d-6
+hat_Psi_P(5) = -1.d-6
 
 ! time stepping
 do it=1, nt
@@ -154,7 +162,7 @@ do it=1, nt
  call energy(n+2,hat_Tem,energy3_1)
  sigma_u=log((energy1_1+energy2_1)/(energy1_0+energy2_0))/(2.d0*dt)
  sigma_T=log(energy3_1/energy3_0)/(2.d0*dt)
- write(1,'(3E15.6)') time, sigma_u, sigma_T
+ write(1,'(5E15.6)') time, energy2_1, log(energy2_1/energy2_0)/(2.d0*dt), sigma_u, sigma_T
 enddo
 
 ! output Psi_T, Psi_P, Tem
