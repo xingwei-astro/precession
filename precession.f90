@@ -31,9 +31,9 @@ pi=acos(-1.d0)
 one=(0.d0, 1.d0)
 Ek=1.d-4
 Pr=1.d0
-epsilon=5.d-1
-k_x=5.d0*pi
-k_y=5.d0*pi
+epsilon=1.d0
+k_x=sqrt(15.d0)*pi
+k_y=0.d0
 k_z=pi
 k2_perp=k_x**2+k_y**2
 k2=k2_perp+k_z**2
@@ -42,7 +42,7 @@ R_c=0.d0
 !delta_R=1.d-1
 delta_R=0.d0
 dt=1.d-2
-nt=100000
+nt=10000
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
