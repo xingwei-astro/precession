@@ -1,5 +1,5 @@
 ! gfortran -o precession precession.f90 nag.f
-! diffusion terms implicit, the other terms explicit, (d/dt-E(D^2-k_perp^2))Psi_T=...
+! Crank-Nicolson scheme, diffusion terms half-implicit half-explicit, the other terms explicit
 ! z=(1/2)x, D=d/dz=2d/dx, D^2=4d/dx, D^4=16d/dx
 ! Psi_T(x(i))=sum_j hat_Psi_T(j)*TTT(0,j-1,x(i)), j from 1 and j-1 from 0
 ! i=1~n: inner points; i=n+1, n+2, n+3 n+4: boundary conditions
@@ -18,9 +18,11 @@ double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coe
 double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
 double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
 integer it, nt							    ! time steps
-parameter (nt=100000)	
+parameter (nt=10000)	
 double precision dt, time, c1, c2				    ! c1 and c2 are coefficients of precession terms
-double complex D1_Psi_T(n), D1_Psi_P(n), D2_Psi_P(n)		    ! derivatives of Psi_T and Psi_P
+double complex D1_Psi_T(n), D2_Psi_T(n)				    ! derivatives of Psi_T
+double complex D1_Psi_P(n), D2_Psi_P(n), D4_Psi_P(n)		    ! derivatives of Psi_P
+double complex D2_Tem(n)					    ! derivatives of Tem
 double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side terms
 double precision energy1_0, energy2_0, energy3_0		    ! spectral energy at the last timestep
 double precision energy1_1, energy2_1, energy3_1		    ! spectral energy at the next timestep
@@ -28,12 +30,11 @@ double precision sigma_u, sigma_T				    ! growth rate
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-!Ek=1.d-4
-Ek=0.d0
+Ek=1.d-4
 Pr=1.d0
-epsilon=2.d-1
-k_x=10.d0*pi
-k_y=10.d0*pi
+epsilon=4.d-1
+k_x=5.d0*pi
+k_y=5.d0*pi
 k_z=pi
 k2_perp=k_x**2+k_y**2
 k2=k2_perp+k_z**2
@@ -41,7 +42,7 @@ k2=k2_perp+k_z**2
 R_c=0.d0
 !delta_R=1.d-1
 delta_R=0.d0
-dt=1.d-1
+dt=1.d-2
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
@@ -54,7 +55,7 @@ enddo
 ! collocate Psi_T equation on inner points
 do j=1, n+2
  do i=1, n
-  a1(i,j)=1.d0/dt*TTT(0,j-1,x(i))-Ek*(4*TTT(2,j-1,x(i))-k2_perp*TTT(0,j-1,x(i)))
+  a1(i,j)=1.d0/dt*TTT(0,j-1,x(i))-0.5d0*Ek*(4*TTT(2,j-1,x(i))-k2_perp*TTT(0,j-1,x(i)))
  enddo
 enddo
 ! collocate Psi_T equation on boundary points
@@ -68,7 +69,7 @@ b1(n+2)=(0.d0, 0.d0)
 do j=1, n+4
  do i=1, n
   a2(i,j)=1.d0/dt*(4*TTT(2,j-1,x(i))-k2_perp*TTT(0,j-1,x(i))) &
-          -Ek*(16*TTT(4,j-1,x(i))-8*k2_perp*TTT(2,j-1,x(i))+k2_perp**2*TTT(0,j-1,x(i)))
+         -0.5d0*Ek*(16*TTT(4,j-1,x(i))-8*k2_perp*TTT(2,j-1,x(i))+k2_perp**2*TTT(0,j-1,x(i)))
  enddo
 enddo
 ! collocate Psi_P equation on boundary points
@@ -85,7 +86,7 @@ b2(n+4)=(0.d0, 0.d0)
 ! collocate Tem equation on inner points
 do j=1, n+2
  do i=1, n
-  a3(i,j)=1.d0/dt*TTT(0,j-1,x(i))-Ek/Pr*(4*TTT(2,j-1,x(i))-k2_perp*TTT(0,j-1,x(i)))
+  a3(i,j)=1.d0/dt*TTT(0,j-1,x(i))-0.5d0*Ek/Pr*(4*TTT(2,j-1,x(i))-k2_perp*TTT(0,j-1,x(i)))
  enddo
 enddo
 ! collocate Tem equation on boundary points
@@ -126,16 +127,22 @@ do it=1, nt
  !hat_Tem=hat_Tem/sqrt(energy1_0+energy2_0+energy3_0)
  ! calculate right-hand-side terms
  call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
- call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
- call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
  call spec_to_phys(n+2,hat_Psi_T,n,D1_Psi_T,x,1)
+ call spec_to_phys(n+2,hat_Psi_T,n,D2_Psi_T,x,2)
+ call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
  call spec_to_phys(n+4,hat_Psi_P,n,D1_Psi_P,x,1)
  call spec_to_phys(n+4,hat_Psi_P,n,D2_Psi_P,x,2)
+ call spec_to_phys(n+4,hat_Psi_P,n,D4_Psi_P,x,4)
+ call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
+ call spec_to_phys(n+2,hat_Tem,n,D2_Tem,x,2)
  do i=1, n
-  b1(i)=2*epsilon*(z(i)*c1*Psi_T(i)-2*c2*Psi_P(i))+2*D1_Psi_P(i)+Psi_T(i)/dt
+  b1(i)=2*epsilon*(z(i)*c1*Psi_T(i)-2*c2*Psi_P(i))+2*D1_Psi_P(i)+Psi_T(i)/dt &
+       +0.5d0*Ek*(D2_Psi_T(i)-k2_perp*Psi_T(i))
   b2(i)=2*epsilon*c1*(Psi_T(i)+z(i)*(D2_Psi_P(i)-k2_perp*Psi_P(i)))-2*D1_Psi_T(i) &
-        -(R_c+epsilon*delta_R)*Tem(i)+(D2_Psi_P(i)-k2_perp*Psi_P(i))/dt
-  b3(i)=2*epsilon*z(i)*c1*Tem(i)+k2_perp*Psi_P(i)+Tem(i)/dt
+       -(R_c+epsilon*delta_R)*Tem(i)+(D2_Psi_P(i)-k2_perp*Psi_P(i))/dt &
+       +0.5d0*Ek*(D4_Psi_P(i)-2*k2_perp*D2_Psi_P(i)+k2_perp**2*Psi_P(i))
+  b3(i)=2*epsilon*z(i)*c1*Tem(i)+k2_perp*Psi_P(i)+Tem(i)/dt &
+       +0.5d0*Ek/Pr*(D2_Tem(i)-k2_perp*Tem(i))
  enddo
  ! multiply by inverse of coefficient matrices to update spectral coefficients
  call mat_mul(n+2,a1_inv,b1,hat_Psi_T)
