@@ -25,13 +25,12 @@ double complex D2_Tem(n)					    ! derivatives of Tem
 double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side terms
 double precision energy1_0, energy2_0, energy3_0		    ! spectral energy at the last timestep
 double precision energy1_1, energy2_1, energy3_1		    ! spectral energy at the next timestep
-double precision sigma_u, sigma_T				    ! growth rate
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
 Ek=1.d-4
 Pr=1.d0
-epsilon=0.2d0
+epsilon=0.5d0
 k_x=5.748d0*pi		! resonance condition of two inertial waves
 k_y=0.d0
 k_z=pi
@@ -41,7 +40,7 @@ k2=k2_perp+k_z**2
 R_c=0.d0
 delta_R=0.d0
 dt=1.d-2
-nt=200000
+nt=50000
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
@@ -110,15 +109,8 @@ call mat_inv(n+2,a3,a3_inv)
 !do j=1, n+2
 ! hat_Tem(j)=1.d-1/dfloat(j)
 !enddo
-hat_Psi_T(:) = 0.d0
-hat_Tem(:)   = 0.d0
-hat_Psi_P(:) = 0.d0
-! k_z = pi mode
-hat_Psi_P(2) =  1.d-6
-hat_Psi_P(4) = -1.d-6
-! k_z = 2pi mode
-hat_Psi_P(3) =  1.d-6
-hat_Psi_P(5) = -1.d-6
+hat_Psi_P(3) = (1.d-6, 0.d0)
+hat_Psi_P(5) = (0.d0, 1.d-6)
 
 ! time stepping
 do it=1, nt
@@ -129,10 +121,6 @@ do it=1, nt
  call energy(n+2,hat_Psi_T,energy1_0)
  call energy(n+4,hat_Psi_P,energy2_0)
  call energy(n+2,hat_Tem,energy3_0)
- ! rescale by energy to avoid too large value
- !hat_Psi_T=hat_Psi_T/sqrt(energy1_0+energy2_0+energy3_0)
- !hat_Psi_P=hat_Psi_P/sqrt(energy1_0+energy2_0+energy3_0)
- !hat_Tem=hat_Tem/sqrt(energy1_0+energy2_0+energy3_0)
  ! calculate right-hand-side terms
  call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
  call spec_to_phys(n+2,hat_Psi_T,n,D1_Psi_T,x,1)
@@ -156,13 +144,14 @@ do it=1, nt
  call mat_mul(n+2,a1_inv,b1,hat_Psi_T)
  call mat_mul(n+4,a2_inv,b2,hat_Psi_P)
  call mat_mul(n+2,a3_inv,b3,hat_Tem)
- ! calculate spectral energy after update and output growth rate
+ ! calculate spectral energy after update
  call energy(n+2,hat_Psi_T,energy1_1)
  call energy(n+4,hat_Psi_P,energy2_1)
  call energy(n+2,hat_Tem,energy3_1)
- sigma_u=log((energy1_1+energy2_1)/(energy1_0+energy2_0))/(2.d0*dt)
- sigma_T=log(energy3_1/energy3_0)/(2.d0*dt)
- write(1,'(5E15.6)') time, energy2_1, log(energy2_1/energy2_0)/(2.d0*dt), sigma_u, sigma_T
+ ! output energy and growth rate
+ write(1,'(7E15.6)') time, energy1_1, energy2_1, energy3_1, &
+                     log(energy1_1/energy1_0)/(2.d0*dt), log(energy2_1/energy2_0)/(2.d0*dt), &
+                     log(energy3_1/energy3_0)/(2.d0*dt)
 enddo
 
 ! output Psi_T, Psi_P, Tem
