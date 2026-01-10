@@ -3,6 +3,7 @@
 ! z=(1/2)x, D=d/dz=2d/dx, D^2=4d/dx, D^4=16d/dx
 ! Psi_T(x(i))=sum_j hat_Psi_T(j)*TTT(0,j-1,x(i)), j from 1 and j-1 from 0
 ! i=1~n: inner points; i=n+1, n+2, n+3 n+4: boundary conditions
+! initial condition: two resonant inertial modes k_z=pi and 2pi, k_perp=5.748pi
 
 program main
 implicit none
@@ -17,6 +18,7 @@ double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! coefficients abo
 double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t -- spectral space
 double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
 double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
+double precision ini_r, ini_i					    ! random initial condition in physical space
 integer it, nt							    ! time steps	
 double precision dt, time, c1, c2				    ! c1 and c2 are coefficients of precession terms
 double complex D1_Psi_T(n), D2_Psi_T(n)				    ! derivatives of Psi_T
@@ -28,11 +30,11 @@ double precision energy1_1, energy2_1, energy3_1		    ! spectral energy at the n
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-Ek=1.d-4
+Ek=0.d0
 Pr=1.d0
 epsilon=0.5d0
-k_x=5.748268d0*pi	! resonance condition of two inertial modes with k_z=pi and 2pi
-k_y=0.d0
+k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
+k_y=4.064639*pi	! to satisfy omega_1+omega_2=1, k_perp can be solved =5.748*pi
 k_z=pi
 k2_perp=k_x**2+k_y**2
 k2=k2_perp+k_z**2
@@ -40,7 +42,7 @@ k2=k2_perp+k_z**2
 R_c=0.d0
 delta_R=0.d0
 dt=1.d-2
-nt=50000
+nt=100000
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
@@ -99,28 +101,27 @@ call mat_inv(n+2,a1,a1_inv)
 call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
-! initial condition of Chebyshev coefficients
-do i=1, n
- Psi_P(i)=1.d-6*sin(pi*(z(i)+0.5))+1.d-6*sin(2.d0*pi*(z(i)+0.5))
- Psi_T(i)=-2.d-6*one/0.342782*pi*cos(pi*(z(i)+0.5))-2.d-6*one/0.657218*2.d0*pi*cos(pi*(z(i)+0.5))
+! initial condition of Chebyshev coefficients, two inertial modes k_z=pi and 2pi
+!do i=1, n
+! Psi_P(i)=1.d-6*sin(pi*(z(i)+0.5))+1.d-6*sin(2.d0*pi*(z(i)+0.5))
+! Psi_T(i)=-2.d-6*one/0.342782*pi*cos(pi*(z(i)+0.5)) &
+!          -2.d-6*one/0.657218*2.d0*pi*cos(2.d0*pi*(z(i)+0.5))
+!enddo
+! initial condition of Chebyshev coefficients, random
+call random_seed()
+do i=1,n
+ call random_number(ini_r)
+ call random_number(ini_i)
+ Psi_P(i)=1.d-6*(ini_r+one*ini_i)
+ call random_number(ini_r)
+ call random_number(ini_i)
+ Psi_T(i)=1.d-6*(ini_r+one*ini_i)
+ call random_number(ini_r)
+ call random_number(ini_i)
+ Tem(i)=1.d-6*(ini_r+one*ini_i)
 enddo
-call phys_to_spec(n,Psi_P,n+4,hat_Psi_P)
-call phys_to_spec(n,Psi_T,n+2,hat_Psi_T)
-!!! test
-do i=1, n
- Psi_P(i)=sin(pi*(z(i)+0.5))
-enddo
-call phys_to_spec(n,Psi_P,n+4,hat_Psi_P)
-do j=1, n+4
- write(6,*) hat_Psi_P(j)
-enddo
-call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
-write(6,*) '------'
-do i=1, n
- write(6,*) Psi_P(i)-sin(pi*(z(i)+0.5))
-enddo
-stop
-!!!
+call phys_to_spec(n,Psi_P,n+4,hat_Psi_P,x)
+call phys_to_spec(n,Psi_T,n+2,hat_Psi_T,x)
 
 ! time stepping
 do it=1, nt
@@ -183,30 +184,30 @@ integer i, j, ns, np, k
 double complex spec(ns), phys(np)
 double precision x(np), TTT
 do i=1, np
- phys(i)=0.d0
+ phys(i)=(0.d0, 0.d0)
  do j=1, ns
   phys(i)=phys(i)+spec(j)*TTT(k,j-1,x(i))*2.d0**k
  enddo
 enddo
 end subroutine spec_to_phys
 
-subroutine phys_to_spec(np,phys,ns,spec)
+subroutine phys_to_spec(np,phys,ns,spec,x)
 implicit none
-integer  np, ns, i, j       
+integer  i, j, np, ns       
 double complex phys(np), spec(ns)   
-double precision x(np)   ! Chebyshev-Gauss-Lobatto nodes
-double precision pi, TTT
-pi=acos(-1.d0)
-do i=1, np
- x(i)=cos((i-1)*pi/(np-1))
-enddo
-spec=(0.d0, 0.d0)
-do j=1, ns
- spec(j)=0.d0
+double precision x(np), TTT
+do j=2, ns
+ spec(j)=(0.d0, 0.d0)
  do i=1, np
-  spec(j)=spec(j)+phys(i)*TTT(0,j-1,x(i))*sqrt(1.d0-x(i)**2)
+  spec(j)=spec(j)+phys(i)*TTT(0,j-1,x(i))
  enddo
+ spec(j)=spec(j)*2.d0/np
 enddo
+spec(1)=(0.d0, 0.d0)
+do i=1, np
+ spec(1)=spec(1)+phys(i)
+enddo
+spec(1)=spec(1)/np
 end subroutine phys_to_spec
 
 subroutine mat_inv(n,a,c)
