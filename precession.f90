@@ -30,7 +30,7 @@ double precision energy1_1, energy2_1, energy3_1		    ! spectral energy at the n
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-Ek=0.d0
+Ek=1.d-6
 Pr=1.d0
 epsilon=0.5d0
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
@@ -42,7 +42,7 @@ k2=k2_perp+k_z**2
 R_c=0.d0
 delta_R=0.d0
 dt=1.d-2
-nt=100000
+nt=20000
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
