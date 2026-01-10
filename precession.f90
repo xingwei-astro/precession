@@ -30,9 +30,9 @@ double precision energy1_1, energy2_1, energy3_1		    ! spectral energy at the n
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-Ek=1.d-6
+Ek=0.d0
 Pr=1.d0
-epsilon=0.5d0
+epsilon=1.d-2
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
 k_y=4.064639*pi	! to satisfy omega_1+omega_2=1, k_perp can be solved =5.748*pi
 k_z=pi
@@ -42,7 +42,7 @@ k2=k2_perp+k_z**2
 R_c=0.d0
 delta_R=0.d0
 dt=1.d-2
-nt=20000
+nt=10000
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
@@ -101,25 +101,30 @@ call mat_inv(n+2,a1,a1_inv)
 call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
-! initial condition of Chebyshev coefficients, two inertial modes k_z=pi and 2pi
-!do i=1, n
-! Psi_P(i)=1.d-6*sin(pi*(z(i)+0.5))+1.d-6*sin(2.d0*pi*(z(i)+0.5))
-! Psi_T(i)=-2.d-6*one/0.342782*pi*cos(pi*(z(i)+0.5)) &
-!          -2.d-6*one/0.657218*2.d0*pi*cos(2.d0*pi*(z(i)+0.5))
-!enddo
-! initial condition of Chebyshev coefficients, random
-call random_seed()
-do i=1,n
- call random_number(ini_r)
- call random_number(ini_i)
- Psi_P(i)=1.d-6*(ini_r+one*ini_i)
- call random_number(ini_r)
- call random_number(ini_i)
- Psi_T(i)=1.d-6*(ini_r+one*ini_i)
- call random_number(ini_r)
- call random_number(ini_i)
- Tem(i)=1.d-6*(ini_r+one*ini_i)
-enddo
+! initial condition
+j=0
+if(j.eq.0) then
+ ! initial condition of Chebyshev coefficients, two inertial modes k_z=pi and 2pi
+ do i=1, n
+  Psi_P(i)=1.d-6*sin(pi*(z(i)+0.5))+1.d-6*sin(2.d0*pi*(z(i)+0.5))
+  Psi_T(i)=-2.d-6*one/0.342782*pi*cos(pi*(z(i)+0.5)) &
+           -2.d-6*one/0.657218*2.d0*pi*cos(2.d0*pi*(z(i)+0.5))
+ enddo
+else
+ ! initial condition of Chebyshev coefficients, random
+ call random_seed()
+ do i=1,n
+  call random_number(ini_r)
+  call random_number(ini_i)
+  Psi_P(i)=1.d-6*(ini_r+one*ini_i)
+  call random_number(ini_r)
+  call random_number(ini_i)
+  Psi_T(i)=1.d-6*(ini_r+one*ini_i)
+  call random_number(ini_r)
+  call random_number(ini_i)
+  Tem(i)=1.d-6*(ini_r+one*ini_i)
+ enddo
+endif
 call phys_to_spec(n,Psi_P,n+4,hat_Psi_P,x)
 call phys_to_spec(n,Psi_T,n+2,hat_Psi_T,x)
 
