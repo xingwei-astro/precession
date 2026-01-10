@@ -31,7 +31,7 @@ one=(0.d0, 1.d0)
 Ek=1.d-4
 Pr=1.d0
 epsilon=0.5d0
-k_x=5.748d0*pi		! resonance condition of two inertial waves
+k_x=5.748268d0*pi	! resonance condition of two inertial modes with k_z=pi and 2pi
 k_y=0.d0
 k_z=pi
 k2_perp=k_x**2+k_y**2
@@ -100,17 +100,27 @@ call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
 ! initial condition of Chebyshev coefficients
-!do j=1, n+2
-! hat_Psi_T(j)=1.d-1/dfloat(j)
-!enddo
-!do j=1, n+4
-! hat_Psi_P(j)=1.d-1/dfloat(j)
-!enddo
-!do j=1, n+2
-! hat_Tem(j)=1.d-1/dfloat(j)
-!enddo
-hat_Psi_P(3) = (1.d-6, 0.d0)
-hat_Psi_P(5) = (0.d0, 1.d-6)
+do i=1, n
+ Psi_P(i)=1.d-6*sin(pi*(z(i)+0.5))+1.d-6*sin(2.d0*pi*(z(i)+0.5))
+ Psi_T(i)=-2.d-6*one/0.342782*pi*cos(pi*(z(i)+0.5))-2.d-6*one/0.657218*2.d0*pi*cos(pi*(z(i)+0.5))
+enddo
+call phys_to_spec(n,Psi_P,n+4,hat_Psi_P)
+call phys_to_spec(n,Psi_T,n+2,hat_Psi_T)
+!!! test
+do i=1, n
+ Psi_P(i)=sin(pi*(z(i)+0.5))
+enddo
+call phys_to_spec(n,Psi_P,n+4,hat_Psi_P)
+do j=1, n+4
+ write(6,*) hat_Psi_P(j)
+enddo
+call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
+write(6,*) '------'
+do i=1, n
+ write(6,*) Psi_P(i)-sin(pi*(z(i)+0.5))
+enddo
+stop
+!!!
 
 ! time stepping
 do it=1, nt
@@ -179,6 +189,25 @@ do i=1, np
  enddo
 enddo
 end subroutine spec_to_phys
+
+subroutine phys_to_spec(np,phys,ns,spec)
+implicit none
+integer  np, ns, i, j       
+double complex phys(np), spec(ns)   
+double precision x(np)   ! Chebyshev-Gauss-Lobatto nodes
+double precision pi, TTT
+pi=acos(-1.d0)
+do i=1, np
+ x(i)=cos((i-1)*pi/(np-1))
+enddo
+spec=(0.d0, 0.d0)
+do j=1, ns
+ spec(j)=0.d0
+ do i=1, np
+  spec(j)=spec(j)+phys(i)*TTT(0,j-1,x(i))*sqrt(1.d0-x(i)**2)
+ enddo
+enddo
+end subroutine phys_to_spec
 
 subroutine mat_inv(n,a,c)
 implicit none
