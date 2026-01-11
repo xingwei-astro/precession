@@ -42,7 +42,7 @@ k2=k2_perp+k_z**2
 R_c=0.d0
 delta_R=0.d0
 dt=1.d-2
-nt=10000
+nt=100000
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
@@ -107,8 +107,8 @@ if(j.eq.0) then
  ! initial condition of Chebyshev coefficients, two inertial modes k_z=pi and 2pi
  do i=1, n
   Psi_P(i)=1.d-6*sin(pi*(z(i)+0.5))+1.d-6*sin(2.d0*pi*(z(i)+0.5))
-  Psi_T(i)=-2.d-6*one/0.342782*pi*cos(pi*(z(i)+0.5)) &
-           -2.d-6*one/0.657218*2.d0*pi*cos(2.d0*pi*(z(i)+0.5))
+  Psi_T(i)=2.d-6*one/0.342782*pi*cos(pi*(z(i)+0.5)) &
+          -2.d-6*one/0.657218*2.d0*pi*cos(2.d0*pi*(z(i)+0.5))
  enddo
 else
  ! initial condition of Chebyshev coefficients, random
