@@ -12,7 +12,7 @@ double complex one
 integer i, j, n							    ! i physical, j spectral, n dimension
 parameter (n=50)
 double precision x(n), z(n), TTT				    ! inner points
-double precision Ek, Pr, epsilon, R_c, delta_R			    ! dimensionless parameters
+double precision Ek, Pr, force, R_c, delta_R			    ! dimensionless parameters
 double precision k_x, k_y, k_z, k2_perp, k2			    ! wavenumbers
 double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! coefficients about (z,t) -- physical space
 double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t -- spectral space
@@ -32,7 +32,7 @@ pi=acos(-1.d0)
 one=(0.d0, 1.d0)
 Ek=0.d0
 Pr=1.d0
-epsilon=1.d-2
+force=1.d-4
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
 k_y=4.064639*pi	! to satisfy omega_1+omega_2=1, k_perp can be solved =5.748*pi
 k_z=pi
@@ -43,7 +43,7 @@ R_c=0.d0
 delta_R=0.d0
 dt=1.d-2
 nt=100
-write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
+write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'force=', force, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
 ! inner points
@@ -152,12 +152,12 @@ do it=1, nt
  call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
  call spec_to_phys(n+2,hat_Tem,n,D2_Tem,x,2)
  do i=1, n
-  b1(i)=2*epsilon*(z(i)*c1*Psi_T(i)-2*c2*Psi_P(i))+2*D1_Psi_P(i)+Psi_T(i)/dt &
+  b1(i)=2*force*(z(i)*c1*Psi_T(i)-2*c2*Psi_P(i))+2*D1_Psi_P(i)+Psi_T(i)/dt &
        +0.5d0*Ek*(D2_Psi_T(i)-k2_perp*Psi_T(i))
-  b2(i)=2*epsilon*c1*(Psi_T(i)+z(i)*(D2_Psi_P(i)-k2_perp*Psi_P(i)))-2*D1_Psi_T(i) &
-       -(R_c+epsilon*delta_R)*Tem(i)+(D2_Psi_P(i)-k2_perp*Psi_P(i))/dt &
+  b2(i)=2*force*c1*(Psi_T(i)+z(i)*(D2_Psi_P(i)-k2_perp*Psi_P(i)))-2*D1_Psi_T(i) &
+       -(R_c+force*delta_R)*Tem(i)+(D2_Psi_P(i)-k2_perp*Psi_P(i))/dt &
        +0.5d0*Ek*(D4_Psi_P(i)-2*k2_perp*D2_Psi_P(i)+k2_perp**2*Psi_P(i))
-  b3(i)=2*epsilon*z(i)*c1*Tem(i)+k2_perp*Psi_P(i)+Tem(i)/dt &
+  b3(i)=2*force*z(i)*c1*Tem(i)+k2_perp*Psi_P(i)+Tem(i)/dt &
        +0.5d0*Ek/Pr*(D2_Tem(i)-k2_perp*Tem(i))
  enddo
  ! multiply by inverse of coefficient matrices to update spectral coefficients
