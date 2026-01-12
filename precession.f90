@@ -34,7 +34,7 @@ Ek=0.d0
 Pr=1.d0
 force=1.d-4
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
-k_y=4.064639*pi	! to satisfy omega_1+omega_2=1, k_perp can be solved =5.748*pi
+k_y=4.064639*pi	! to satisfy omega_1-omega_2=1, k_perp can be solved =5.748*pi
 k_z=pi
 k2_perp=k_x**2+k_y**2
 k2=k2_perp+k_z**2
