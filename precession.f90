@@ -42,7 +42,7 @@ k2=k2_perp+k_z**2
 R_c=0.d0
 delta_R=0.d0
 dt=1.d-2
-nt=100000
+nt=100
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'epsilon=', epsilon, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
@@ -125,6 +125,10 @@ else
   Tem(i)=1.d-6*(ini_r+one*ini_i)
  enddo
 endif
+! output initial condition
+do i=1, n
+ write(3,'(4E15.6)') z(i), abs(Psi_T(i)), abs(Psi_P(i)), abs(Tem(i))
+enddo
 call phys_to_spec(n,Psi_P,n+4,hat_Psi_P,x)
 call phys_to_spec(n,Psi_T,n+2,hat_Psi_T,x)
 
