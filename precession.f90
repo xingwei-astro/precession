@@ -127,7 +127,8 @@ else
 endif
 ! output initial condition
 do i=1, n
- write(3,'(4E15.6)') z(i), abs(Psi_T(i)), abs(Psi_P(i)), abs(Tem(i))
+ write(3,'(7E15.6)') z(i), real(Psi_T(i)), imag(Psi_T(i)), real(Psi_P(i)), imag(Psi_P(i)), &
+                     real(Tem(i)), imag(Tem(i))
 enddo
 call phys_to_spec(n,Psi_P,n+4,hat_Psi_P,x)
 call phys_to_spec(n,Psi_T,n+2,hat_Psi_T,x)
@@ -182,7 +183,8 @@ call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
 call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
 call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
 do i=1, n
- write(2,'(4E15.6)') z(i), abs(Psi_T(i)), abs(Psi_P(i)), abs(Tem(i))
+ write(2,'(7E15.6)') z(i), real(Psi_T(i)), imag(Psi_T(i)), real(Psi_P(i)), imag(Psi_P(i)), &
+                     real(Tem(i)), imag(Tem(i))
 enddo
 end program main
 
