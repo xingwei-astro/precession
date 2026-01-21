@@ -32,7 +32,7 @@ pi=acos(-1.d0)
 one=(0.d0, 1.d0)
 Ek=0.d0
 Pr=1.d0
-force=1.d-2
+force=0.d-2
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
 k_y=4.064639*pi	! to satisfy omega_1-omega_2=1, k_perp can be solved =5.748*pi
 k_z=pi
@@ -102,7 +102,7 @@ call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
 ! initial condition of Chebyshev coefficients
-j=1
+j=0
 if(j.eq.0) then
  ! two inertial modes k_z=pi and 2pi
  do i=1, n
