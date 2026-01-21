@@ -32,7 +32,7 @@ pi=acos(-1.d0)
 one=(0.d0, 1.d0)
 Ek=0.d0
 Pr=1.d0
-force=1.d-4
+force=1.d-2
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
 k_y=4.064639*pi	! to satisfy omega_1-omega_2=1, k_perp can be solved =5.748*pi
 k_z=pi
@@ -102,7 +102,7 @@ call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
 ! initial condition of Chebyshev coefficients
-j=0
+j=1
 if(j.eq.0) then
  ! two inertial modes k_z=pi and 2pi
  do i=1, n
@@ -128,6 +128,7 @@ endif
 ! transform to spectral space and calculate spectral energy
 call phys_to_spec(n,Psi_P,n+4,hat_Psi_P,x)
 call phys_to_spec(n,Psi_T,n+2,hat_Psi_T,x)
+call phys_to_spec(n,Tem,n+2,hat_Tem,x)
 call energy(n+2,hat_Psi_T,energy1_0)
 call energy(n+4,hat_Psi_P,energy2_0)
 call energy(n+2,hat_Tem,energy3_0)
