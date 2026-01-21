@@ -101,17 +101,17 @@ call mat_inv(n+2,a1,a1_inv)
 call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
-! initial condition
+! initial condition of Chebyshev coefficients
 j=0
 if(j.eq.0) then
- ! initial condition of Chebyshev coefficients, two inertial modes k_z=pi and 2pi
+ ! two inertial modes k_z=pi and 2pi
  do i=1, n
   Psi_P(i)=1.d-6*sin(pi*(z(i)+0.5))+1.d-6*sin(2.d0*pi*(z(i)+0.5))
   Psi_T(i)=2.d-6*one/0.342782*pi*cos(pi*(z(i)+0.5)) &
           -2.d-6*one/0.657218*2.d0*pi*cos(2.d0*pi*(z(i)+0.5))
  enddo
 else
- ! initial condition of Chebyshev coefficients, random
+ ! random
  call random_seed()
  do i=1,n
   call random_number(ini_r)
