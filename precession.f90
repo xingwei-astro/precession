@@ -38,11 +38,11 @@ k_y=4.064639*pi	! to satisfy omega_1-omega_2=1, k_perp can be solved =5.748*pi
 k_z=pi
 k2_perp=k_x**2+k_y**2
 k2=k2_perp+k_z**2
-!R_c=4.d0*k_z**2/k2_perp+Ek**2*k2**3/k2_perp*(1.d0+2.d0/Pr)*(1.d0+1.d0/Pr)
+!R_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
 R_c=0.d0
 delta_R=0.d0
 dt=1.d-2
-nt=100
+nt=500000
 write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'force=', force, &
                             'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
