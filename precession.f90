@@ -125,13 +125,25 @@ else
   Tem(i)=1.d-6*(ini_r+one*ini_i)
  enddo
 endif
-! output initial condition
-do i=1, n
- write(3,'(7E15.6)') z(i), real(Psi_T(i)), imag(Psi_T(i)), real(Psi_P(i)), imag(Psi_P(i)), &
-                     real(Tem(i)), imag(Tem(i))
-enddo
+! transform to spectral space and calculate spectral energy
 call phys_to_spec(n,Psi_P,n+4,hat_Psi_P,x)
 call phys_to_spec(n,Psi_T,n+2,hat_Psi_T,x)
+call energy(n+2,hat_Psi_T,energy1_0)
+call energy(n+4,hat_Psi_P,energy2_0)
+call energy(n+2,hat_Tem,energy3_0)
+! output normalized initial condition
+if(j.eq.0) then
+ do i=1, n
+  write(3,'(5E15.6)') z(i), real(Psi_T(i))/sqrt(energy1_0), imag(Psi_T(i))/sqrt(energy1_0), &
+                            real(Psi_P(i))/sqrt(energy2_0), imag(Psi_P(i))/sqrt(energy2_0)
+ enddo
+else
+ do i=1, n
+  write(3,'(7E15.6)') z(i), real(Psi_T(i))/sqrt(energy1_0), imag(Psi_T(i))/sqrt(energy1_0), &
+                            real(Psi_P(i))/sqrt(energy2_0), imag(Psi_P(i))/sqrt(energy2_0), &
+                            real(Tem(i))/sqrt(energy3_0), imag(Tem(i))/sqrt(energy3_0)
+ enddo
+endif
 
 ! time stepping
 do it=1, nt
