@@ -30,21 +30,19 @@ double precision energy1_1, energy2_1, energy3_1		    ! spectral energy at the n
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-Ek=0.d0
-Pr=1.d0
+Ek=0.d-4
+Pr=1.d-1
 force=0.d-2
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
 k_y=4.064639*pi	! to satisfy omega_1-omega_2=1, k_perp can be solved =5.748*pi
-k_z=pi
 k2_perp=k_x**2+k_y**2
-k2=k2_perp+k_z**2
 !R_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
 R_c=0.d0
 delta_R=0.d0
 dt=1.d-1
 nt=1000
-write(6,'(A10,I10,/,7(A10,E15.6,/))') 'n=', n, 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, &
-                                      'force=', force, 'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
+write(6,'(A10,I10,/,6(A10,E15.6,/))') 'n=', n, 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, &
+                                      'force=', force, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
 ! inner points
 do i=1,n
@@ -107,8 +105,8 @@ if(j.eq.0) then
  ! two inertial modes k_z=pi and 2pi
  do i=1, n
   Psi_P(i)=1.d-6*sin(pi*(z(i)+0.5))+1.d-6*sin(2.d0*pi*(z(i)+0.5))
-  Psi_T(i)=2.d-6*one/0.342782*pi*cos(pi*(z(i)+0.5)) &
-          -2.d-6*one/0.657218*2.d0*pi*cos(2.d0*pi*(z(i)+0.5))
+  Psi_T(i)=2.d-6*pi/(one*0.342782+Ek*k2)*cos(pi*(z(i)+0.5)) &
+          +2.d-6*2*pi/(-one*0.657218+Ek*k2)*cos(2.d0*pi*(z(i)+0.5))
  enddo
 else
  ! random
