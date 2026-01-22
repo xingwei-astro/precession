@@ -41,10 +41,10 @@ k2=k2_perp+k_z**2
 !R_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
 R_c=0.d0
 delta_R=0.d0
-dt=1.d-2
-nt=500000
-write(6,'(7(A10,E15.6,/))') 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, 'force=', force, &
-                            'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
+dt=1.d-1
+nt=1000
+write(6,'(A10,I10,/,7(A10,E15.6,/))') 'n=', n, 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, &
+                                      'force=', force, 'k_z=', k_z, 'k_perp=', sqrt(k2_perp), 'dt=', dt
 
 ! inner points
 do i=1,n
@@ -132,21 +132,37 @@ call phys_to_spec(n,Tem,n+2,hat_Tem,x)
 call energy(n+2,hat_Psi_T,energy1_0)
 call energy(n+4,hat_Psi_P,energy2_0)
 call energy(n+2,hat_Tem,energy3_0)
-! output normalized initial condition
-if(j.eq.0) then
- do i=1, n
-  write(3,'(5E15.6)') z(i), real(Psi_T(i))/sqrt(energy1_0), imag(Psi_T(i))/sqrt(energy1_0), &
-                            real(Psi_P(i))/sqrt(energy2_0), imag(Psi_P(i))/sqrt(energy2_0)
- enddo
-else
- do i=1, n
-  write(3,'(7E15.6)') z(i), real(Psi_T(i))/sqrt(energy1_0), imag(Psi_T(i))/sqrt(energy1_0), &
-                            real(Psi_P(i))/sqrt(energy2_0), imag(Psi_P(i))/sqrt(energy2_0), &
-                            real(Tem(i))/sqrt(energy3_0), imag(Tem(i))/sqrt(energy3_0)
- enddo
-endif
+! output initial condition in physical space
+open(1,file='ini_phys.dat',form='formatted')
+if(j.eq.0) energy3_0=1.d0
+do i=1, n
+ write(1,'(7E15.6)') z(i), real(Psi_T(i))/sqrt(energy1_0), imag(Psi_T(i))/sqrt(energy1_0), &
+                           real(Psi_P(i))/sqrt(energy2_0), imag(Psi_P(i))/sqrt(energy2_0), &
+                           real(Tem(i))/sqrt(energy3_0), imag(Tem(i))/sqrt(energy3_0)
+enddo
+close(1)
+! output initial condition in spectral space
+open(1,file='ini_tor.dat',form='formatted')
+do j=1, n+2
+ write(1,'(I5,3E15.6)') j, real(hat_Psi_T(j))/sqrt(energy1_0), imag(hat_Psi_T(j))/sqrt(energy1_0), &
+                        abs(hat_Psi_T(j))**2/energy1_0
+enddo
+close(1)
+open(1,file='ini_pol.dat',form='formatted')
+do j=1, n+4
+ write(1,'(I5,3E15.6)') j, real(hat_Psi_P(j))/sqrt(energy2_0), imag(hat_Psi_P(j))/sqrt(energy2_0), &
+                        abs(hat_Psi_P(j))**2/energy2_0
+enddo
+close(1)
+open(1,file='ini_tem.dat',form='formatted')
+do j=1, n+2
+ write(1,'(I5,3E15.6)') j, real(hat_Tem(j))/sqrt(energy3_0), imag(hat_Tem(j))/sqrt(energy3_0), &
+                        abs(hat_Tem(j))**2/energy3_0
+enddo
+close(1)
 
 ! time stepping
+open(1,file='evolution.dat',form='formatted')
 do it=1, nt
  time=it*dt
  c1=one*k_x*sin(time)+one*k_y*cos(time)
@@ -187,18 +203,38 @@ do it=1, nt
                      log(energy1_1/energy1_0)/(2.d0*dt), log(energy2_1/energy2_0)/(2.d0*dt), &
                      log(energy3_1/energy3_0)/(2.d0*dt)
 enddo
+close(1)
 
-! output Psi_T, Psi_P, Tem
-hat_Psi_T=hat_Psi_T/sqrt(energy1_1)
-hat_Psi_P=hat_Psi_P/sqrt(energy2_1)
-hat_Tem=hat_Tem/sqrt(energy3_1)
+! output final result in physical space
+open(1,file='fin_phys.dat',form='formatted')
 call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
 call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
 call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
 do i=1, n
- write(2,'(7E15.6)') z(i), real(Psi_T(i)), imag(Psi_T(i)), real(Psi_P(i)), imag(Psi_P(i)), &
-                     real(Tem(i)), imag(Tem(i))
+ write(1,'(7E15.6)') z(i), real(Psi_T(i))/sqrt(energy1_1), imag(Psi_T(i))/sqrt(energy1_1), &
+                           real(Psi_P(i))/sqrt(energy2_1), imag(Psi_P(i))/sqrt(energy2_1), &
+                           real(Tem(i))/sqrt(energy3_1), imag(Tem(i))/sqrt(energy3_1)
 enddo
+close(1)
+! output final result in spectral space
+open(1,file='fin_tor.dat',form='formatted')
+do j=1, n+2
+ write(1,'(I5,3E15.6)') j, real(hat_Psi_T(j))/sqrt(energy1_1), imag(hat_Psi_T(j))/sqrt(energy1_1), &
+                        abs(hat_Psi_T(j))**2/energy1_1
+enddo
+close(1)
+open(1,file='fin_pol.dat',form='formatted')
+do j=1, n+4
+ write(1,'(I5,3E15.6)') j, real(hat_Psi_P(j))/sqrt(energy2_1), imag(hat_Psi_P(j))/sqrt(energy2_1), &
+                        abs(hat_Psi_P(j))**2/energy2_1
+enddo
+close(1)
+open(1,file='fin_tem.dat',form='formatted')
+do j=1, n+2
+ write(1,'(I5,3E15.6)') j, real(hat_Tem(j))/sqrt(energy3_1), imag(hat_Tem(j))/sqrt(energy3_1), &
+                        abs(hat_Tem(j))**2/energy3_1
+enddo
+close(1)
 end program main
 
 !!! use Chebyshev spectral coefficients to calculate k-th derivative in physical space at points x
