@@ -7,8 +7,8 @@ do i=1, 100000
  call diff(x0,k)
  x1=x0-y(x0)/k
  if(abs(y(x1)).lt.1.d-6) then
-  write(6,*) x1, y(x1)
-  write(6,*) 2.d0/sqrt(1.d0+x1**2), 4.d0/sqrt(4.d0+x1**2)
+  write(6,*) x1, y(x1), x1/sqrt(2.d0)
+  write(6,*) 2.d0/sqrt(1.d0+x1**2), -4.d0/sqrt(4.d0+x1**2)
   stop
  endif
  x0=x1

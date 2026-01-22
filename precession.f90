@@ -13,7 +13,8 @@ integer i, j, n							    ! i physical, j spectral, n dimension
 parameter (n=50)
 double precision x(n), z(n), TTT				    ! inner points
 double precision Ek, Pr, force, R_c, delta_R			    ! dimensionless parameters
-double precision k_x, k_y, k_z, k2_perp, k2			    ! wavenumbers
+double precision k_x, k_y, k2_perp, k_z_1, k_z_2, k2_1, k2_2        ! wavenumbers
+double precision omega_1, omega_2				    ! frequencies
 double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! coefficients about (z,t) -- physical space
 double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t -- spectral space
 double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
@@ -36,13 +37,21 @@ force=0.d-2
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
 k_y=4.064639*pi	! to satisfy omega_1-omega_2=1, k_perp can be solved =5.748*pi
 k2_perp=k_x**2+k_y**2
+k_z_1=pi
+k_z_2=2.d0*pi
+k2_1=k2_perp+k_z_1**2
+k2_2=k2_perp+k_z_2**2
+omega_1=2.d0*k_z_1/sqrt(k2_1)
+omega_2=-2.d0*k_z_2/sqrt(k2_2)
 !R_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
 R_c=0.d0
 delta_R=0.d0
 dt=1.d-1
 nt=1000
-write(6,'(A10,I10,/,6(A10,E15.6,/))') 'n=', n, 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, &
-                                      'force=', force, 'k_perp=', sqrt(k2_perp), 'dt=', dt
+write(6,'(A10,I10,/,12(A10,E15.6,/))') 'n=', n, 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, &
+                                       'force=', force, 'k_perp=', sqrt(k2_perp), 'k_z_1=', k_z_1, &
+                                       'k_z_2=', k_z_2, 'k2_1=', k2_1, 'k2_2=', k2_2, &
+                                       'omega_1=', omega_1, 'omega_2=', omega_2, 'dt=', dt
 
 ! inner points
 do i=1,n
@@ -104,9 +113,11 @@ j=0
 if(j.eq.0) then
  ! two inertial modes k_z=pi and 2pi
  do i=1, n
-  Psi_P(i)=1.d-6*sin(pi*(z(i)+0.5))+1.d-6*sin(2.d0*pi*(z(i)+0.5))
-  Psi_T(i)=2.d-6*pi/(one*0.342782+Ek*k2)*cos(pi*(z(i)+0.5)) &
-          +2.d-6*2*pi/(-one*0.657218+Ek*k2)*cos(2.d0*pi*(z(i)+0.5))
+  Psi_P(i)=1.d-6*sin(k_z_1*(z(i)+0.5))+1.d-6*sin(k_z_2*(z(i)+0.5))
+  Psi_T(i)=2.d-6*k_z_1/(one*omega_1+Ek*k2_1)*cos(k_z_1*(z(i)+0.5)) &
+          +2.d-6*k_z_2/(one*omega_2+Ek*k2_2)*cos(k_z_2*(z(i)+0.5))
+  Tem(i)  =2.d-6*k2_perp/(one*omega_1+Ek/Pr*k2_1)*sin(k_z_1*(z(i)+0.5)) &
+          +2.d-6*k2_perp/(one*omega_2+Ek/Pr*k2_2)*sin(k_z_2*(z(i)+0.5))
  enddo
 else
  ! random
@@ -132,7 +143,6 @@ call energy(n+4,hat_Psi_P,energy2_0)
 call energy(n+2,hat_Tem,energy3_0)
 ! output initial condition in physical space
 open(1,file='ini_phys.dat',form='formatted')
-if(j.eq.0) energy3_0=1.d0
 do i=1, n
  write(1,'(7E15.6)') z(i), real(Psi_T(i))/sqrt(energy1_0), imag(Psi_T(i))/sqrt(energy1_0), &
                            real(Psi_P(i))/sqrt(energy2_0), imag(Psi_P(i))/sqrt(energy2_0), &
