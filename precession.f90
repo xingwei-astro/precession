@@ -51,10 +51,10 @@ R_c=0.d0
 delta_R=0.d0
 dt=1.d-1
 nt=1000
-write(6,'(A10,I10,/,12(A10,E15.6,/))') 'n=', n, 'Ek=', Ek, 'R_c=', R_c, 'delta_R=', delta_R, &
-                                       'force=', force, 'k_perp=', sqrt(k2_perp), 'k_z_1=', k_z_1, &
-                                       'k_z_2=', k_z_2, 'k2_1=', k2_1, 'k2_2=', k2_2, &
-                                       'omega_1=', omega_1, 'omega_2=', omega_2, 'dt=', dt
+write(6,'(2(A10,I10,/),13(A10,E15.6,/))') 'n=', n, 'ini=', j, 'Ek=', Ek, 'Pr=', Pr, &
+ 'R_c=', R_c, 'delta_R', delta_R, 'force=', force, 'k_perp=', sqrt(k2_perp), &
+ 'k_z_1=', k_z_1, 'k_z_2=', k_z_2, 'k2_1=', k2_1, 'k2_2=', k2_2, &
+ 'omega_1=', omega_1, 'omega_2=', omega_2, 'dt=', dt
 
 ! inner points
 do i=1,n
