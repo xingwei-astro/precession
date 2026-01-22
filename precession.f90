@@ -13,8 +13,8 @@ integer i, j, n							    ! i physical, j spectral, n dimension
 parameter (n=50)
 double precision x(n), z(n), TTT				    ! inner points
 double precision Ek, Pr, force, R_c, delta_R			    ! dimensionless parameters
-double precision k_x, k_y, k2_perp, k_z_1, k_z_2, k2_1, k2_2        ! wavenumbers
-double precision omega_1, omega_2				    ! frequencies
+double precision k_x, k_y, k2_perp, k_z, k2			    ! wavenumber
+double precision k_z_1, k_z_2, k2_1, k2_2, omega_1, omega_2         ! two resonance waves
 double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! coefficients about (z,t) -- physical space
 double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t -- spectral space
 double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
@@ -43,8 +43,11 @@ k2_1=k2_perp+k_z_1**2
 k2_2=k2_perp+k_z_2**2
 omega_1=2.d0*k_z_1/sqrt(k2_1)
 omega_2=-2.d0*k_z_2/sqrt(k2_2)
+k_z=k_z_1
+k2=k2_perp+k_z**2
 !R_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
 R_c=0.d0
+!delta_R=10*R_c
 delta_R=0.d0
 dt=1.d-1
 nt=1000
