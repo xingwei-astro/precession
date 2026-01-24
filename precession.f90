@@ -21,7 +21,7 @@ double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matri
 double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
 double precision ini_r, ini_i					    ! random initial condition in physical space
 integer it, nt							    ! time steps	
-double precision dt, time, c1, c2				    ! c1 and c2 are coefficients of precession terms
+double precision dt, time, c1, c2, c3				    ! c1 c2 c3 are coefficients of precession terms
 double complex D1_Psi_T(n), D2_Psi_T(n)				    ! derivatives of Psi_T
 double complex D1_Psi_P(n), D2_Psi_P(n), D4_Psi_P(n)		    ! derivatives of Psi_P
 double complex D2_Tem(n)					    ! derivatives of Tem
@@ -31,9 +31,9 @@ double precision energy1_1, energy2_1, energy3_1		    ! spectral energy at the n
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-Ek=0.d-4
+Ek=1.d-6
 Pr=1.d-1
-force=0.d-2
+force=1.d-2
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
 k_y=4.064639*pi	! to satisfy omega_1-omega_2=1, k_perp can be solved =5.748*pi
 k2_perp=k_x**2+k_y**2
@@ -45,8 +45,8 @@ omega_1=2.d0*k_z_1/sqrt(k2_1)
 omega_2=-2.d0*k_z_2/sqrt(k2_2)
 k_z=k_z_1
 k2=k2_perp+k_z**2
-!R_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
-R_c=0.d0
+R_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
+!R_c=0.d0
 !delta_R=10*R_c
 delta_R=0.d0
 dt=1.d-1
@@ -121,7 +121,7 @@ if(j.eq.0) then
           +2.d-6*k_z_2/(one*omega_2+Ek*k2_2)*cos(k_z_2*(z(i)+0.5))
   Tem(i)  =2.d-6*k2_perp/(one*omega_1+Ek/Pr*k2_1)*sin(k_z_1*(z(i)+0.5)) &
           +2.d-6*k2_perp/(one*omega_2+Ek/Pr*k2_2)*sin(k_z_2*(z(i)+0.5))
- enddo
+ enddo  
 else
  ! random
  call random_seed()
@@ -176,8 +176,9 @@ close(1)
 open(1,file='evolution.dat',form='formatted')
 do it=1, nt
  time=it*dt
- c1=one*k_x*sin(time)+one*k_y*cos(time)
- c2=one*k_x*sin(time)-one*k_y*cos(time)
+ c1=one*(k_x*sin(time)+k_y*cos(time))
+ c2=one*(k_x*sin(time)-k_y*cos(time))
+ c3=one*(k_x*cos(time)-k_y*sin(time))
  ! calculate spectral energy before update
  call energy(n+2,hat_Psi_T,energy1_0)
  call energy(n+4,hat_Psi_P,energy2_0)
@@ -195,7 +196,7 @@ do it=1, nt
  do i=1, n
   b1(i)=2*force*(z(i)*c1*Psi_T(i)-2*c2*Psi_P(i))+2*D1_Psi_P(i)+Psi_T(i)/dt &
        +0.5d0*Ek*(D2_Psi_T(i)-k2_perp*Psi_T(i))
-  b2(i)=2*force*c1*(Psi_T(i)+z(i)*(D2_Psi_P(i)-k2_perp*Psi_P(i)))-2*D1_Psi_T(i) &
+  b2(i)=2*force*(-z(i)*c1*D2_Psi_P(i)+2*c2*D1_Psi_P(i)-c3*Psi_T(i))-2*D1_Psi_T(i) &
        -(R_c+force*delta_R)*Tem(i)+(D2_Psi_P(i)-k2_perp*Psi_P(i))/dt &
        +0.5d0*Ek*(D4_Psi_P(i)-2*k2_perp*D2_Psi_P(i)+k2_perp**2*Psi_P(i))
   b3(i)=2*force*z(i)*c1*Tem(i)+k2_perp*Psi_P(i)+Tem(i)/dt &
