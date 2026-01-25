@@ -37,3 +37,25 @@ y=fin_pol;
 z=fin_tem;
 semilogy(x(:,1),x(:,4),'-k',y(:,1),y(:,4),'-b',z(:,1),z(:,4),'-r')
 print -dpdfcrop fin_spec.pdf
+
+load ini_phys.dat
+load fin_phys.dat
+x=ini_phys;
+y=fin_phys;
+plot(x(:,4),x(:,1),'-k',x(:,5),x(:,1),'--k',y(:,4),y(:,1),'-r',y(:,5),y(:,1),'--r')
+ylim([-0.5 0.5])
+print -dpdfcrop phys.pdf
+
+load ini_pol.dat
+load fin_pol.dat
+x=ini_pol;
+y=fin_pol;
+semilogy(x(:,1),x(:,4),'-k',y(:,1),y(:,4),'-r')
+print -dpdfcrop chebyshev.pdf
+
+load ini_fourier.dat
+load fin_fourier.dat
+x=ini_fourier;
+y=fin_fourier;
+semilogy(x(:,1),x(:,4),'-ok',y(:,1),y(:,4),'-or')
+print -dpdfcrop fourier.pdf

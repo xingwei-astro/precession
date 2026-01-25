@@ -28,12 +28,15 @@ double complex D2_Tem(n)					    ! derivatives of Tem
 double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side terms
 double precision energy1_0, energy2_0, energy3_0		    ! spectral energy at the last timestep
 double precision energy1_1, energy2_1, energy3_1		    ! spectral energy at the next timestep
+integer ns							    ! mode number in Fourier space
+parameter (ns=11)		
+double complex ft(ns)						    ! modes in Fourier space
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-Ek=1.d-6
+Ek=0.d-6
 Pr=1.d-1
-force=1.d-2
+force=0.d-2
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
 k_y=4.064639*pi	! to satisfy omega_1-omega_2=1, k_perp can be solved =5.748*pi
 k2_perp=k_x**2+k_y**2
@@ -45,8 +48,8 @@ omega_1=2.d0*k_z_1/sqrt(k2_1)
 omega_2=-2.d0*k_z_2/sqrt(k2_2)
 k_z=k_z_1
 k2=k2_perp+k_z**2
-R_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
-!R_c=0.d0
+!R_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
+R_c=0.d0
 !delta_R=10*R_c
 delta_R=0.d0
 dt=1.d-1
@@ -152,7 +155,7 @@ do i=1, n
                            real(Tem(i))/sqrt(energy3_0), imag(Tem(i))/sqrt(energy3_0)
 enddo
 close(1)
-! output initial condition in spectral space
+! output initial condition in Chebyshev spectral space
 open(1,file='ini_tor.dat',form='formatted')
 do j=1, n+2
  write(1,'(I5,3E15.6)') j, real(hat_Psi_T(j))/sqrt(energy1_0), imag(hat_Psi_T(j))/sqrt(energy1_0), &
@@ -169,6 +172,14 @@ open(1,file='ini_tem.dat',form='formatted')
 do j=1, n+2
  write(1,'(I5,3E15.6)') j, real(hat_Tem(j))/sqrt(energy3_0), imag(hat_Tem(j))/sqrt(energy3_0), &
                         abs(hat_Tem(j))**2/energy3_0
+enddo
+close(1)
+!!! output initial condition in Fourier spectral space
+open(1,file='ini_fourier.dat',form='formatted')
+call Fourier(n,Psi_P,ns,ft)
+do j=1, ns
+ write(1,'(I10,3E15.6)') j-1, real(ft(j))/sqrt(energy2_0), imag(ft(j))/sqrt(energy2_0), &
+                         abs(ft(j))**2/energy2_0
 enddo
 close(1)
 
@@ -228,7 +239,7 @@ do i=1, n
                            real(Tem(i))/sqrt(energy3_1), imag(Tem(i))/sqrt(energy3_1)
 enddo
 close(1)
-! output final result in spectral space
+! output final result in Chebyshev spectral space
 open(1,file='fin_tor.dat',form='formatted')
 do j=1, n+2
  write(1,'(I5,3E15.6)') j, real(hat_Psi_T(j))/sqrt(energy1_1), imag(hat_Psi_T(j))/sqrt(energy1_1), &
@@ -245,6 +256,14 @@ open(1,file='fin_tem.dat',form='formatted')
 do j=1, n+2
  write(1,'(I5,3E15.6)') j, real(hat_Tem(j))/sqrt(energy3_1), imag(hat_Tem(j))/sqrt(energy3_1), &
                         abs(hat_Tem(j))**2/energy3_1
+enddo
+close(1)
+!!! output final result in Fourier spectral space
+open(1,file='fin_fourier.dat',form='formatted')
+call Fourier(n,Psi_P,ns,ft)
+do j=1, ns
+ write(1,'(I10,3E15.6)') j-1, real(ft(j))/sqrt(energy2_1), imag(ft(j))/sqrt(energy2_1), &
+                         abs(ft(j))**2/energy2_1
 enddo
 close(1)
 end program main
@@ -281,6 +300,26 @@ do i=1, np
 enddo
 spec(1)=spec(1)/np
 end subroutine phys_to_spec
+
+subroutine Fourier(np,phys,ns,spec)
+implicit none
+double complex one
+double precision pi
+integer  i, j, np, ns
+double complex phys(np), spec(ns)
+one=(0.d0, 1.d0)
+pi=acos(-1.d0)
+if(ns>np) then
+ write(6,*) "Warning: Fourier ns > np, will zero-pad in Fourier space"
+endif
+do j=1, ns
+ spec(j)=(0.d0, 0.d0)
+ do i=1, np
+  spec(j)=spec(j)+phys(i)*exp(-one*2*pi*(j-1)*(i-1)/np)
+ enddo
+ spec(j)=spec(j)/np
+enddo
+end subroutine Fourier
 
 subroutine mat_inv(n,a,c)
 implicit none
