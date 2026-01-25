@@ -1,5 +1,5 @@
 ! gfortran -o precession precession.f90 nag.f
-! Crank-Nicolson scheme, diffusion terms half-implicit half-explicit, the other terms explicit
+! Crank-Nicolson scheme, diffusion terms semi-implicit, the other terms explicit
 ! z=(1/2)x, D=d/dz=2d/dx, D^2=4d/dx, D^4=16d/dx
 ! Psi_T(x(i))=sum_j hat_Psi_T(j)*TTT(0,j-1,x(i)), j from 1 and j-1 from 0
 ! i=1~n: inner points; i=n+1, n+2, n+3 n+4: boundary conditions
