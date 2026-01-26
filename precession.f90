@@ -205,12 +205,12 @@ do it=1, nt
  call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
  call spec_to_phys(n+2,hat_Tem,n,D2_Tem,x,2)
  do i=1, n
-  b1(i)=2*force*(z(i)*c1*Psi_T(i)-2*c2*Psi_P(i))+2*D1_Psi_P(i)+Psi_T(i)/dt &
+  b1(i)=2*force*(c1*z(i)*Psi_T(i)-2*c2*Psi_P(i))+2*D1_Psi_P(i)+Psi_T(i)/dt &
        +0.5d0*Ek*(D2_Psi_T(i)-k2_perp*Psi_T(i))
-  b2(i)=2*force*(-z(i)*c1*D2_Psi_P(i)+2*c2*D1_Psi_P(i)-c3*Psi_T(i))-2*D1_Psi_T(i) &
+  b2(i)=-2*force*(c3*Psi_T(i)+2*c1*z(i)*k2_perp*Psi_P(i)-c1*D1_Psi_P(i))-2*D1_Psi_T(i) &
        -(R_c+force*delta_R)*Tem(i)+(D2_Psi_P(i)-k2_perp*Psi_P(i))/dt &
        +0.5d0*Ek*(D4_Psi_P(i)-2*k2_perp*D2_Psi_P(i)+k2_perp**2*Psi_P(i))
-  b3(i)=2*force*z(i)*c1*Tem(i)+k2_perp*Psi_P(i)+Tem(i)/dt &
+  b3(i)=2*force*c1*z(i)*Tem(i)+k2_perp*Psi_P(i)+Tem(i)/dt &
        +0.5d0*Ek/Pr*(D2_Tem(i)-k2_perp*Tem(i))
  enddo
  ! multiply by inverse of coefficient matrices to update spectral coefficients
