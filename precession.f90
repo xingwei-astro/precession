@@ -19,8 +19,8 @@ double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! coefficients abo
 double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t -- spectral space
 double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
 double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
-integer ini							    ! select initial condition
-double precision ini_r, ini_i					    ! random initial condition in physical space							
+integer ini							    ! ini=0 two resonant modes, else random
+double precision ini_r, ini_i					    ! for random initial condition							
 integer it, nt							    ! time steps	
 double precision dt, time, c1, c2, c3				    ! c1 c2 c3 are coefficients of precession terms
 double complex D1_Psi_T(n), D2_Psi_T(n)				    ! derivatives of Psi_T
@@ -35,7 +35,7 @@ double complex ft(ns)						    ! modes in Fourier space
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-Ek=1.d-8
+Ek=1.d-4
 Pr=1.d-1
 force=1.d-2
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
@@ -53,9 +53,9 @@ k2=k2_perp+k_z**2
 R_c=0.d0
 !delta_R=10*R_c
 delta_R=0.d0
-ini=1
+ini=0
 dt=1.d-1
-nt=5000
+nt=10000
 
 ! inner points
 do i=1,n
@@ -114,16 +114,14 @@ call mat_inv(n+2,a3,a3_inv)
 
 ! initial condition of Chebyshev coefficients
 if(ini.eq.0) then
- ! two inertial modes k_z=pi and 2pi
  do i=1, n
   Psi_P(i)=1.d-6*sin(k_z_1*(z(i)+0.5))+1.d-6*sin(k_z_2*(z(i)+0.5))
   Psi_T(i)=2.d-6*k_z_1/(one*omega_1+Ek*k2_1)*cos(k_z_1*(z(i)+0.5)) &
           +2.d-6*k_z_2/(one*omega_2+Ek*k2_2)*cos(k_z_2*(z(i)+0.5))
   Tem(i)  =2.d-6*k2_perp/(one*omega_1+Ek/Pr*k2_1)*sin(k_z_1*(z(i)+0.5)) &
           +2.d-6*k2_perp/(one*omega_2+Ek/Pr*k2_2)*sin(k_z_2*(z(i)+0.5))
- enddo  
+ enddo
 else
- ! random
  call random_seed()
  do i=1,n
   call random_number(ini_r)
