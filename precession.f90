@@ -19,7 +19,8 @@ double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! coefficients abo
 double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t -- spectral space
 double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
 double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
-double precision ini_r, ini_i					    ! random initial condition in physical space
+integer ini							    ! select initial condition
+double precision ini_r, ini_i					    ! random initial condition in physical space							
 integer it, nt							    ! time steps	
 double precision dt, time, c1, c2, c3				    ! c1 c2 c3 are coefficients of precession terms
 double complex D1_Psi_T(n), D2_Psi_T(n)				    ! derivatives of Psi_T
@@ -34,9 +35,9 @@ double complex ft(ns)						    ! modes in Fourier space
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-Ek=0.d-6
+Ek=1.d-8
 Pr=1.d-1
-force=0.d-2
+force=1.d-2
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
 k_y=4.064639*pi	! to satisfy omega_1-omega_2=1, k_perp can be solved =5.748*pi
 k2_perp=k_x**2+k_y**2
@@ -52,12 +53,9 @@ k2=k2_perp+k_z**2
 R_c=0.d0
 !delta_R=10*R_c
 delta_R=0.d0
+ini=1
 dt=1.d-1
-nt=1000
-write(6,'(2(A10,I10,/),13(A10,E15.6,/))') 'n=', n, 'ini=', j, 'Ek=', Ek, 'Pr=', Pr, &
- 'R_c=', R_c, 'delta_R', delta_R, 'force=', force, 'k_perp=', sqrt(k2_perp), &
- 'k_z_1=', k_z_1, 'k_z_2=', k_z_2, 'k2_1=', k2_1, 'k2_2=', k2_2, &
- 'omega_1=', omega_1, 'omega_2=', omega_2, 'dt=', dt
+nt=5000
 
 ! inner points
 do i=1,n
@@ -115,8 +113,7 @@ call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
 ! initial condition of Chebyshev coefficients
-j=0
-if(j.eq.0) then
+if(ini.eq.0) then
  ! two inertial modes k_z=pi and 2pi
  do i=1, n
   Psi_P(i)=1.d-6*sin(k_z_1*(z(i)+0.5))+1.d-6*sin(k_z_2*(z(i)+0.5))
@@ -182,6 +179,11 @@ do j=1, ns
                          abs(ft(j))**2/energy2_0
 enddo
 close(1)
+
+write(6,'(2(A10,I10,/),13(A10,E15.6,/))') 'n=', n, 'ini=', ini, 'Ek=', Ek, 'Pr=', Pr, &
+ 'R_c=', R_c, 'delta_R', delta_R, 'force=', force, 'k_perp=', sqrt(k2_perp), &
+ 'k_z_1=', k_z_1, 'k_z_2=', k_z_2, 'k2_1=', k2_1, 'k2_2=', k2_2, &
+ 'omega_1=', omega_1, 'omega_2=', omega_2, 'dt=', dt
 
 ! time stepping
 open(1,file='evolution.dat',form='formatted')
