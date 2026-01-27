@@ -30,12 +30,12 @@ double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side terms
 double precision energy1_0, energy2_0, energy3_0		    ! spectral energy at the last timestep
 double precision energy1_1, energy2_1, energy3_1		    ! spectral energy at the next timestep
 integer ns							    ! mode number in Fourier space
-parameter (ns=11)		
+parameter (ns=n/2+1)		
 double complex ft(ns)						    ! modes in Fourier space
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-Ek=1.d-4
+Ek=1.d-6
 Pr=1.d-1
 force=1.d-2
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
