@@ -24,7 +24,7 @@ double precision ini_r, ini_i					    ! for random initial condition
 integer it, nt							    ! time steps	
 double precision dt, time, c1, c2, c3				    ! c1 c2 c3 are coefficients of precession terms
 double complex D1_Psi_T(n), D2_Psi_T(n)				    ! derivatives of Psi_T
-double complex D1_Psi_P(n), D2_Psi_P(n), D4_Psi_P(n)		    ! derivatives of Psi_P
+double complex D1_Psi_P(n), D2_Psi_P(n), D3_Psi_P(n), D4_Psi_P(n)   ! derivatives of Psi_P
 double complex D2_Tem(n)					    ! derivatives of Tem
 double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side terms
 double precision energy1_0, energy2_0, energy3_0		    ! spectral energy at the last timestep
@@ -201,13 +201,15 @@ do it=1, nt
  call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
  call spec_to_phys(n+4,hat_Psi_P,n,D1_Psi_P,x,1)
  call spec_to_phys(n+4,hat_Psi_P,n,D2_Psi_P,x,2)
+ call spec_to_phys(n+4,hat_Psi_P,n,D3_Psi_P,x,3)
  call spec_to_phys(n+4,hat_Psi_P,n,D4_Psi_P,x,4)
  call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
  call spec_to_phys(n+2,hat_Tem,n,D2_Tem,x,2)
  do i=1, n
   b1(i)=2*force*(c1*z(i)*Psi_T(i)-2*c2*Psi_P(i))+2*D1_Psi_P(i)+Psi_T(i)/dt &
        +0.5d0*Ek*(D2_Psi_T(i)-k2_perp*Psi_T(i))
-  b2(i)=-2*force*(c3*Psi_T(i)+2*c1*z(i)*k2_perp*Psi_P(i)-c1*D1_Psi_P(i))-2*D1_Psi_T(i) &
+  b2(i)=2*force*(c3/k2_perp*D2_Psi_T(i)-c3*Psi_T(i)-c1/k2_perp*D3_Psi_P(i) & 
+       +c1*z(i)*D2_Psi_P(i)+3*c1*D1_Psi_P(i)-c1*k2_perp*z(i)*Psi_P(i))-2*D1_Psi_T(i) &
        -(R_c+force*delta_R)*Tem(i)+(D2_Psi_P(i)-k2_perp*Psi_P(i))/dt &
        +0.5d0*Ek*(D4_Psi_P(i)-2*k2_perp*D2_Psi_P(i)+k2_perp**2*Psi_P(i))
   b3(i)=2*force*c1*z(i)*Tem(i)+k2_perp*Psi_P(i)+Tem(i)/dt &
