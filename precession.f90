@@ -1,5 +1,5 @@
 ! gfortran -o precession precession.f90 nag.f
-! Crank-Nicolson scheme, diffusion terms semi-implicit, the other terms explicit
+! diffusion terms semi-implicit, the source terms explicit
 ! z=(1/2)x, D=d/dz=2d/dx, D^2=4d/dx, D^4=16d/dx
 ! Psi_T(x(i))=sum_j hat_Psi_T(j)*TTT(0,j-1,x(i)), j from 1 and j-1 from 0
 ! i=1~n: inner points; i=n+1, n+2, n+3 n+4: boundary conditions
@@ -10,7 +10,7 @@ implicit none
 double precision pi
 double complex one
 integer i, j, n							    ! i physical, j spectral, n dimension
-parameter (n=50)
+parameter (n=100)
 double precision x(n), z(n), TTT				    ! inner points
 double precision Ek, Pr, force, R_c, delta_R			    ! dimensionless parameters
 double precision k_x, k_y, k2_perp, k_z, k2			    ! wavenumber
@@ -35,7 +35,7 @@ double complex ft(ns)						    ! modes in Fourier space
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
-Ek=1.d-6
+Ek=1.d-4
 Pr=1.d-1
 force=1.d-2
 k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
@@ -54,8 +54,8 @@ R_c=0.d0
 !delta_R=10*R_c
 delta_R=0.d0
 ini=0
-dt=1.d-1
-nt=10000
+dt=5.d-2
+nt=40000
 
 ! inner points
 do i=1,n
