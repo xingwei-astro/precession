@@ -12,7 +12,7 @@ double complex one
 integer i, j, n							    ! i physical, j spectral, n dimension
 parameter (n=100)
 double precision x(n), z(n), TTT				    ! inner points
-double precision Ek, Pr, force, R_c, delta_R			    ! dimensionless parameters
+double precision Ek, Pr, force, Ra_c, Ra			    ! dimensionless parameters
 double precision k_x, k_y, k2_perp, k_z, k2			    ! wavenumber
 double precision k_z_1, k_z_2, k2_1, k2_2, omega_1, omega_2         ! two resonance waves
 double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! coefficients about (z,t) -- physical space
@@ -35,6 +35,7 @@ double complex ft(ns)						    ! modes in Fourier space
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
+
 Ek=1.d-4
 Pr=1.d-1
 force=1.d-2
@@ -49,10 +50,8 @@ omega_1=2.d0*k_z_1/sqrt(k2_1)
 omega_2=-2.d0*k_z_2/sqrt(k2_2)
 k_z=k_z_1
 k2=k2_perp+k_z**2
-!R_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
-R_c=0.d0
-!delta_R=10*R_c
-delta_R=0.d0
+Ra_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
+Ra=Ra_c
 ini=0
 dt=5.d-2
 nt=40000
@@ -179,7 +178,7 @@ enddo
 close(1)
 
 write(6,'(2(A10,I10,/),13(A10,E15.6,/))') 'n=', n, 'ini=', ini, 'Ek=', Ek, 'Pr=', Pr, &
- 'R_c=', R_c, 'delta_R', delta_R, 'force=', force, 'k_perp=', sqrt(k2_perp), &
+ 'Ra_c=', Ra_c, 'Ra/Ra_c-1=', Ra/Ra_c-1.d0, 'force=', force, 'k_perp=', sqrt(k2_perp), &
  'k_z_1=', k_z_1, 'k_z_2=', k_z_2, 'k2_1=', k2_1, 'k2_2=', k2_2, &
  'omega_1=', omega_1, 'omega_2=', omega_2, 'dt=', dt
 
@@ -210,7 +209,7 @@ do it=1, nt
        +0.5d0*Ek*(D2_Psi_T(i)-k2_perp*Psi_T(i))
   b2(i)=2*force*(c3/k2_perp*D2_Psi_T(i)-c3*Psi_T(i)-c1/k2_perp*D3_Psi_P(i) & 
        +c1*z(i)*D2_Psi_P(i)+3*c1*D1_Psi_P(i)-c1*k2_perp*z(i)*Psi_P(i))-2*D1_Psi_T(i) &
-       -(R_c+force*delta_R)*Tem(i)+(D2_Psi_P(i)-k2_perp*Psi_P(i))/dt &
+       -Ra*Tem(i)+(D2_Psi_P(i)-k2_perp*Psi_P(i))/dt &
        +0.5d0*Ek*(D4_Psi_P(i)-2*k2_perp*D2_Psi_P(i)+k2_perp**2*Psi_P(i))
   b3(i)=2*force*c1*z(i)*Tem(i)+k2_perp*Psi_P(i)+Tem(i)/dt &
        +0.5d0*Ek/Pr*(D2_Tem(i)-k2_perp*Tem(i))
