@@ -1,12 +1,6 @@
+close all
 clear all
 clc
-
-load evolution.dat
-x=evolution;
-semilogy(x(:,1),x(:,2),'-k',x(:,1),x(:,3),'-b',x(:,1),x(:,4),'-r')
-print -dpdfcrop energy.pdf
-plot(x(:,1),x(:,5),'-k',x(:,1),x(:,6),'-b',x(:,1),x(:,7),'-r')
-print -dpdfcrop rate.pdf
 
 load ini_phys.dat
 x=ini_phys;
@@ -59,3 +53,35 @@ x=ini_fourier;
 y=fin_fourier;
 semilogy(x(:,1),x(:,4),'-ok',y(:,1),y(:,4),'-or')
 print -dpdfcrop fourier.pdf
+
+load evolution.dat
+x=evolution;
+semilogy(x(:,1),x(:,2),'-k',x(:,1),x(:,3),'-b',x(:,1),x(:,4),'-r')
+print -dpdfcrop energy.pdf
+plot(x(:,1),x(:,5),'-k',x(:,1),x(:,6),'-b',x(:,1),x(:,7),'-r')
+print -dpdfcrop rate.pdf
+
+close all
+d=1;
+t=x(:,1);
+tor=log(x(:,2));
+pol=log(x(:,3));
+tem=log(x(:,4));
+[pks,locs]=findpeaks(tor,'MinPeakDistance',d);
+t1=t(locs);
+y1=pks;
+[pks,locs]=findpeaks(pol,'MinPeakDistance',d);
+t2=t(locs);
+y2=pks;
+[pks,locs]=findpeaks(tem,'MinPeakDistance',d);
+t3=t(locs);
+y3=pks;
+plot(t1,y1,'-r',t2,y2,'-g',t3,y3,'-b')
+hold on
+plot(t1(ceil(end/2):end),y1(ceil(end/2):end),'-k',t2(ceil(end/2):end),y2(ceil(end/2):end),'-k',t3(ceil(end/2):end),y3(ceil(end/2):end),'-k')
+p1=polyfit(t1(ceil(end/2):end),y1(ceil(end/2):end),1);
+p2=polyfit(t2(ceil(end/2):end),y2(ceil(end/2):end),1);
+p3=polyfit(t3(ceil(end/2):end),y3(ceil(end/2):end),1);
+p1(1)
+p2(1)
+p3(1)
