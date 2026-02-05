@@ -1,9 +1,10 @@
 ! gfortran -o precession precession.f90 nag.f
-! diffusion terms semi-implicit, the source terms explicit
+! predictor-corrector time-stepping
+! diffusion and Coriolis terms semi-implicit, the source terms explicit
 ! z=(1/2)x, D=d/dz=2d/dx, D^2=4d/dx, D^4=16d/dx
 ! Psi_T(x(i))=sum_j hat_Psi_T(j)*TTT(0,j-1,x(i)), j from 1 and j-1 from 0
 ! i=1~n: inner points; i=n+1, n+2, n+3 n+4: boundary conditions
-! initial condition: two resonant inertial modes k_z=pi and 2pi, k_perp=5.748pi
+! initial condition: two resonant inertial/thermal-inertial modes k_z=pi and 2pi
 
 program main
 implicit none
@@ -19,7 +20,7 @@ double complex Psi_T(n),       Psi_P(n),       Tem(n)    	    ! coefficients abo
 double complex hat_Psi_T(n+2), hat_Psi_P(n+4), hat_Tem(n+2) 	    ! Chebyshev coefficients about t -- spectral space
 double precision a1(n+2,n+2), a2(n+4,n+4), a3(n+2,n+2)  	    ! coefficient matrices 
 double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of coefficient matrices
-integer ini							    ! ini=0 two resonant modes, else random
+integer ini							    ! 0: zero, 1: random, 2: inertial, 3: thermal-inertial
 double precision ini_r, ini_i					    ! for random initial condition							
 integer it, nt							    ! time steps	
 double precision dt, time, c1, c2, c3				    ! c1 c2 c3 are coefficients of precession terms
@@ -36,25 +37,38 @@ double complex ft(ns)						    ! modes in Fourier space
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
 
-Ek=1.d-4
+Ek=1.d-5
 Pr=1.d-1
 force=1.d-2
-k_x=4.064639*pi	! resonance condition of two inertial modes k_z=pi and 2pi
-k_y=4.064639*pi	! to satisfy omega_1-omega_2=1, k_perp can be solved =5.748*pi
-k2_perp=k_x**2+k_y**2
+dt=5.d-2
+nt=10
+ini=3
+k_z=pi
 k_z_1=pi
 k_z_2=2.d0*pi
+if(ini.eq.0) then
+ k_x=0.d0
+ k_y=0.d0
+elseif(ini.eq.1) then
+ k_x=pi
+ k_y=pi
+elseif(ini.eq.2) then
+ k_x=12.769447	! two resonant inertial waves
+ k_y=12.769447	
+elseif(ini.eq.3) then
+ k_x=14.230189   ! two resonant thermal-inertial waves
+ k_y=14.230189
+else
+write(6,*) 'ini must be 0-3'
+stop
+endif
+k2_perp=k_x**2+k_y**2
 k2_1=k2_perp+k_z_1**2
 k2_2=k2_perp+k_z_2**2
-omega_1=2.d0*k_z_1/sqrt(k2_1)
-omega_2=-2.d0*k_z_2/sqrt(k2_2)
-k_z=k_z_1
 k2=k2_perp+k_z**2
 Ra_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
 Ra=Ra_c
-ini=0
-dt=5.d-2
-nt=40000
+!Ra=0.d0
 
 ! inner points
 do i=1,n
@@ -111,16 +125,14 @@ call mat_inv(n+2,a1,a1_inv)
 call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
-! initial condition of Chebyshev coefficients
+! initial condition
 if(ini.eq.0) then
  do i=1, n
-  Psi_P(i)=1.d-6*sin(k_z_1*(z(i)+0.5))+1.d-6*sin(k_z_2*(z(i)+0.5))
-  Psi_T(i)=2.d-6*k_z_1/(one*omega_1+Ek*k2_1)*cos(k_z_1*(z(i)+0.5)) &
-          +2.d-6*k_z_2/(one*omega_2+Ek*k2_2)*cos(k_z_2*(z(i)+0.5))
-  Tem(i)  =2.d-6*k2_perp/(one*omega_1+Ek/Pr*k2_1)*sin(k_z_1*(z(i)+0.5)) &
-          +2.d-6*k2_perp/(one*omega_2+Ek/Pr*k2_2)*sin(k_z_2*(z(i)+0.5))
+ Psi_P(i)=0.d0
+ Psi_T(i)=0.d0
+ Tem(i)  =0.d0
  enddo
-else
+elseif(ini.eq.1) then  ! random initial condition
  call random_seed()
  do i=1,n
   call random_number(ini_r)
@@ -133,6 +145,29 @@ else
   call random_number(ini_i)
   Tem(i)=1.d-6*(ini_r+one*ini_i)
  enddo
+elseif(ini.eq.2) then  ! two resonant inertial waves
+ omega_1=2*k_z_1/sqrt(k2_1)
+ omega_2=-2*k_z_2/sqrt(k2_2)
+ do i=1, n
+  Psi_P(i)=1.d-6*sin(k_z_1*(z(i)+0.5))+1.d-6*sin(k_z_2*(z(i)+0.5))
+  Psi_T(i)=2.d-6*k_z_1/(one*omega_1)*cos(k_z_1*(z(i)+0.5)) &
+          +2.d-6*k_z_2/(one*omega_2)*cos(k_z_2*(z(i)+0.5))
+  Tem(i)  =2.d-6*k2_perp/(one*omega_1)*sin(k_z_1*(z(i)+0.5)) &
+          +2.d-6*k2_perp/(one*omega_2)*sin(k_z_2*(z(i)+0.5))
+ enddo
+elseif(ini.eq.3) then  ! two resonant thermal-inertial waves
+ omega_1=2*k_z_1/sqrt(k2_1)*sqrt((1+Pr)/(1-Pr))
+ omega_2=-2*k_z_2/sqrt(k2_2)*sqrt((1+Pr)/(1-Pr))
+ do i=1, n
+  Psi_P(i)=1.d-6*sin(k_z_1*(z(i)+0.5))+1.d-6*sin(k_z_2*(z(i)+0.5))
+  Psi_T(i)=2.d-6*k_z_1/(one*omega_1)*cos(k_z_1*(z(i)+0.5)) &
+          +2.d-6*k_z_2/(one*omega_2)*cos(k_z_2*(z(i)+0.5))
+  Tem(i)  =2.d-6*k2_perp/(one*omega_1)*sin(k_z_1*(z(i)+0.5)) &
+          +2.d-6*k2_perp/(one*omega_2)*sin(k_z_2*(z(i)+0.5))
+ enddo
+else
+write(6,*) 'ini must be 0-3'
+stop
 endif
 ! transform to spectral space and calculate spectral energy
 call phys_to_spec(n,Psi_P,n+4,hat_Psi_P,x)
@@ -177,10 +212,9 @@ do j=1, ns
 enddo
 close(1)
 
-write(6,'(2(A10,I10,/),13(A10,E15.6,/))') 'n=', n, 'ini=', ini, 'Ek=', Ek, 'Pr=', Pr, &
- 'Ra_c=', Ra_c, 'Ra/Ra_c-1=', Ra/Ra_c-1.d0, 'force=', force, 'k_perp=', sqrt(k2_perp), &
- 'k_z_1=', k_z_1, 'k_z_2=', k_z_2, 'k2_1=', k2_1, 'k2_2=', k2_2, &
- 'omega_1=', omega_1, 'omega_2=', omega_2, 'dt=', dt
+write(6,'(2(A10,I10,/),9(A10,E15.6,/))') 'n=', n, 'ini=', ini, 'Ek=', Ek, 'Pr=', Pr, &
+ 'Ra_c=', Ra_c, 'Ra/Ra_c-1=', Ra/Ra_c-1.d0, 'force=', force, 'dt=', dt, &
+ 'k_perp=', sqrt(k2_perp), 'omega_1', omega_1, 'omega_2', omega_2
 
 ! time stepping
 open(1,file='evolution.dat',form='formatted')
@@ -205,14 +239,14 @@ do it=1, nt
  call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
  call spec_to_phys(n+2,hat_Tem,n,D2_Tem,x,2)
  do i=1, n
-  b1(i)=2*force*(c1*z(i)*Psi_T(i)-2*c2*Psi_P(i))+2*D1_Psi_P(i)+Psi_T(i)/dt &
-       +0.5d0*Ek*(D2_Psi_T(i)-k2_perp*Psi_T(i))
-  b2(i)=2*force*(c3/k2_perp*D2_Psi_T(i)-c3*Psi_T(i)-c1/k2_perp*D3_Psi_P(i) & 
-       +c1*z(i)*D2_Psi_P(i)+3*c1*D1_Psi_P(i)-c1*k2_perp*z(i)*Psi_P(i))-2*D1_Psi_T(i) &
-       -Ra*Tem(i)+(D2_Psi_P(i)-k2_perp*Psi_P(i))/dt &
-       +0.5d0*Ek*(D4_Psi_P(i)-2*k2_perp*D2_Psi_P(i)+k2_perp**2*Psi_P(i))
+  b1(i)=2*force*(c1*z(i)*Psi_T(i)-2*c2*Psi_P(i))+2*2*D1_Psi_P(i)+Psi_T(i)/dt &
+       +0.5d0*Ek*(4*D2_Psi_T(i)-k2_perp*Psi_T(i))
+  b2(i)=2*force*(c3/k2_perp*4*D2_Psi_T(i)-c3*Psi_T(i)-c1/k2_perp*8*D3_Psi_P(i) & 
+       +c1*z(i)*4*D2_Psi_P(i)+3*c1*2*D1_Psi_P(i)-c1*k2_perp*z(i)*Psi_P(i))-2*2*D1_Psi_T(i) &
+       -Ra*Tem(i)+(4*D2_Psi_P(i)-k2_perp*Psi_P(i))/dt &
+       +0.5d0*Ek*(16*D4_Psi_P(i)-2*k2_perp*4*D2_Psi_P(i)+k2_perp**2*Psi_P(i))
   b3(i)=2*force*c1*z(i)*Tem(i)+k2_perp*Psi_P(i)+Tem(i)/dt &
-       +0.5d0*Ek/Pr*(D2_Tem(i)-k2_perp*Tem(i))
+       +0.5d0*Ek/Pr*(4*D2_Tem(i)-k2_perp*Tem(i))
  enddo
  ! multiply by inverse of coefficient matrices to update spectral coefficients
  call mat_mul(n+2,a1_inv,b1,hat_Psi_T)
@@ -278,7 +312,7 @@ double precision x(np), TTT
 do i=1, np
  phys(i)=(0.d0, 0.d0)
  do j=1, ns
-  phys(i)=phys(i)+spec(j)*TTT(k,j-1,x(i))*2.d0**k
+  phys(i)=phys(i)+spec(j)*TTT(k,j-1,x(i))
  enddo
 enddo
 end subroutine spec_to_phys
