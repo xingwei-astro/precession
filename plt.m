@@ -65,6 +65,13 @@ t=x(:,1);
 tor=log(x(:,2));
 pol=log(x(:,3));
 tem=log(x(:,4));
+p1=polyfit(t(20:80),tor(20:80),1);
+p2=polyfit(t(20:80),pol(20:80),1);
+p3=polyfit(t(20:80),tem(20:80),1);
+p1(1)
+p2(1)
+p3(1)
+
 [pks,locs]=findpeaks(tor,'MinPeakDistance',d);
 t1=t(locs);
 y1=pks;
