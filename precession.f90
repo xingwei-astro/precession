@@ -66,6 +66,7 @@ elseif(ini.eq.1) then  ! random
 elseif(ini.eq.2) then  ! two resonant inertial waves
  k_x=12.769447	
  k_y=12.769447	
+ k_z=pi
  k_z_1=pi
  k_z_2=2.d0*pi
  k2_perp=k_x**2+k_y**2
@@ -77,6 +78,7 @@ elseif(ini.eq.2) then  ! two resonant inertial waves
 elseif(ini.eq.3) then  ! two resonant thermal-inertial waves
  k_x=14.230189   
  k_y=14.230189
+ k_z=pi
  k_z_1=pi
  k_z_2=2.d0*pi
  k2_perp=k_x**2+k_y**2
