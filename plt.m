@@ -58,8 +58,6 @@ load evolution.dat
 x=evolution;
 semilogy(x(:,1),x(:,2),'-k',x(:,1),x(:,3),'-b',x(:,1),x(:,4),'-r')
 print -dpdfcrop energy.pdf
-plot(x(:,1),x(:,5),'-k',x(:,1),x(:,6),'-b',x(:,1),x(:,7),'-r')
-print -dpdfcrop rate.pdf
 
 close all
 d=1;
