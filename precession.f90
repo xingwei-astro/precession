@@ -37,60 +37,23 @@ double precision k_z_1, k_z_2, k2_1, k2_2, omega_1, omega_2         ! two resona
 integer ini							    ! 0: zero, 1: random, 2: inertial, 3: thermal-inertial
 double precision ini_r, ini_i					    ! for random initial condition							
 integer it, nt							    ! time steps
-double precision time
-integer ns							    ! dimension of Fourier space
-parameter (ns=n/2+1)		
-double complex ft(ns)						    ! modes in Fourier space
+double precision time						    ! time
 
 pi=acos(-1.d0)
 one=(0.d0, 1.d0)
 
-Ek=1.d-4
+Ek=1.d-6
 Pr=1.d-1
 prec=1.d-2
-dt=1.d-1
-nt=10
 ini=2
-if(ini.eq.0) then  ! zero
- k_x=pi
- k_y=pi
- k_z=pi
- k2_perp=k_x**2+k_y**2
- k2=k2_perp+k_z**2
-elseif(ini.eq.1) then  ! random
- k_x=pi
- k_y=pi
- k_z=pi
- k2_perp=k_x**2+k_y**2
- k2=k2_perp+k_z**2
-elseif(ini.eq.2) then  ! two resonant inertial waves
- k_x=12.769447	
- k_y=12.769447	
- k_z=pi
- k_z_1=pi
- k_z_2=2.d0*pi
- k2_perp=k_x**2+k_y**2
- k2_1=k2_perp+k_z_1**2
- k2_2=k2_perp+k_z_2**2
- k2=k2_1+k2_2
- omega_1= 2*k_z_1/sqrt(k2_1)
- omega_2=-2*k_z_2/sqrt(k2_2)
-elseif(ini.eq.3) then  ! two resonant thermal-inertial waves
- k_x=14.230189   
- k_y=14.230189
- k_z=pi
- k_z_1=pi
- k_z_2=2.d0*pi
- k2_perp=k_x**2+k_y**2
- k2_1=k2_perp+k_z_1**2
- k2_2=k2_perp+k_z_2**2
- k2=k2_1+k2_2
- omega_1= 2*k_z_1/sqrt(k2_1)*sqrt((1+Pr)/(1-Pr))
- omega_2=-2*k_z_2/sqrt(k2_2)*sqrt((1+Pr)/(1-Pr))
-else
-write(6,*) 'ini must be 0-3'
-stop
-endif
+dt=5.d-2
+nt=10
+
+k_x=pi
+k_y=pi
+k_z=pi
+k2_perp=k_x**2+k_y**2
+k2=k2_perp+k_z**2
 Ra_c=8.d0*k_z**2/k2_perp*Pr/(1.d0+Pr)+2.d0*Ek**2*k2**3/k2_perp*(1.d0+Pr)/Pr
 Ra=Ra_c
 Ra=0.d0  ! decouple flow and temperature
@@ -100,6 +63,76 @@ do i=1,n
  x(i)=-cos((2*dfloat(i)-1)/(2*dfloat(n))*pi)
  z(i)=x(i)/2.d0
 enddo
+
+! initial condition
+if(ini.eq.0) then  ! zero
+ do i=1, n
+ Psi_P(i)=0.d0
+ Psi_T(i)=0.d0
+ Tem(i)  =0.d0
+ enddo
+elseif(ini.eq.1) then  ! random
+ call random_seed()
+ do i=1,n
+  call random_number(ini_r)
+  call random_number(ini_i)
+  Psi_P(i)=1.d-6*(ini_r+one*ini_i)
+  call random_number(ini_r)
+  call random_number(ini_i)
+  Psi_T(i)=1.d-6*(ini_r+one*ini_i)
+  call random_number(ini_r)
+  call random_number(ini_i)
+  Tem(i)=1.d-6*(ini_r+one*ini_i)
+ enddo
+elseif(ini.eq.2) then  ! two resonant inertial waves
+ k_x=12.769447
+ k_y=12.769447
+ k_z_1=pi
+ k_z_2=2.d0*pi
+ k2_perp=k_x**2+k_y**2
+ k2_1=k2_perp+k_z_1**2
+ k2_2=k2_perp+k_z_2**2
+ k2=k2_1+k2_2
+ omega_1= 2*k_z_1/sqrt(k2_1)
+ omega_2=-2*k_z_2/sqrt(k2_2)
+ do i=1, n
+  Psi_P(i)=1.d-6*sin(k_z_1*(z(i)+0.5))+1.d-6*sin(k_z_2*(z(i)+0.5))
+  Psi_T(i)=2.d-6*k_z_1/(one*omega_1)*cos(k_z_1*(z(i)+0.5)) &
+          +2.d-6*k_z_2/(one*omega_2)*cos(k_z_2*(z(i)+0.5))
+  Tem(i)  =2.d-6*k2_perp/(one*omega_1)*sin(k_z_1*(z(i)+0.5)) &
+          +2.d-6*k2_perp/(one*omega_2)*sin(k_z_2*(z(i)+0.5))
+ enddo
+elseif(ini.eq.3) then  ! two resonant thermal-inertial waves
+ k_x=14.230189
+ k_y=14.230189
+ k_z_1=pi
+ k_z_2=2.d0*pi
+ k2_perp=k_x**2+k_y**2
+ k2_1=k2_perp+k_z_1**2
+ k2_2=k2_perp+k_z_2**2
+ k2=k2_1+k2_2
+ omega_1= 2*k_z_1/sqrt(k2_1)*sqrt((1+Pr)/(1-Pr))
+ omega_2=-2*k_z_2/sqrt(k2_2)*sqrt((1+Pr)/(1-Pr))
+ do i=1, n
+  Psi_P(i)=1.d-6*sin(k_z_1*(z(i)+0.5))+1.d-6*sin(k_z_2*(z(i)+0.5))
+  Psi_T(i)=2.d-6*k_z_1/(one*omega_1)*cos(k_z_1*(z(i)+0.5)) &
+          +2.d-6*k_z_2/(one*omega_2)*cos(k_z_2*(z(i)+0.5))
+  Tem(i)  =2.d-6*k2_perp/(one*omega_1)*sin(k_z_1*(z(i)+0.5)) &
+          +2.d-6*k2_perp/(one*omega_2)*sin(k_z_2*(z(i)+0.5))
+ enddo
+else
+write(6,*) 'ini must be 0-3'
+stop
+endif
+! transform initial condition to spectral space and calculate spectral energy
+call phys_to_spec(n,Psi_P,n+4,hat_Psi_P,x)
+call phys_to_spec(n,Psi_T,n+2,hat_Psi_T,x)
+call phys_to_spec(n,Tem,n+2,hat_Tem,x)
+call energy(n+2,hat_Psi_T,energy1)
+call energy(n+4,hat_Psi_P,energy2)
+call energy(n+2,hat_Tem,energy3)
+! output initial condition
+call output('ini')
 
 ! collocate Psi_T equation on inner points
 do j=1, n+2
@@ -150,92 +183,9 @@ call mat_inv(n+2,a1,a1_inv)
 call mat_inv(n+4,a2,a2_inv)
 call mat_inv(n+2,a3,a3_inv)
 
-! initial condition
-if(ini.eq.0) then
- do i=1, n
- Psi_P(i)=0.d0
- Psi_T(i)=0.d0
- Tem(i)  =0.d0
- enddo
-elseif(ini.eq.1) then  ! random initial condition
- call random_seed()
- do i=1,n
-  call random_number(ini_r)
-  call random_number(ini_i)
-  Psi_P(i)=1.d-6*(ini_r+one*ini_i)
-  call random_number(ini_r)
-  call random_number(ini_i)
-  Psi_T(i)=1.d-6*(ini_r+one*ini_i)
-  call random_number(ini_r)
-  call random_number(ini_i)
-  Tem(i)=1.d-6*(ini_r+one*ini_i)
- enddo
-elseif(ini.eq.2) then  ! two resonant inertial waves
- do i=1, n
-  Psi_P(i)=1.d-6*sin(k_z_1*(z(i)+0.5))+1.d-6*sin(k_z_2*(z(i)+0.5))
-  Psi_T(i)=2.d-6*k_z_1/(one*omega_1)*cos(k_z_1*(z(i)+0.5)) &
-          +2.d-6*k_z_2/(one*omega_2)*cos(k_z_2*(z(i)+0.5))
-  Tem(i)  =2.d-6*k2_perp/(one*omega_1)*sin(k_z_1*(z(i)+0.5)) &
-          +2.d-6*k2_perp/(one*omega_2)*sin(k_z_2*(z(i)+0.5))
- enddo
-elseif(ini.eq.3) then  ! two resonant thermal-inertial waves
- do i=1, n
-  Psi_P(i)=1.d-6*sin(k_z_1*(z(i)+0.5))+1.d-6*sin(k_z_2*(z(i)+0.5))
-  Psi_T(i)=2.d-6*k_z_1/(one*omega_1)*cos(k_z_1*(z(i)+0.5)) &
-          +2.d-6*k_z_2/(one*omega_2)*cos(k_z_2*(z(i)+0.5))
-  Tem(i)  =2.d-6*k2_perp/(one*omega_1)*sin(k_z_1*(z(i)+0.5)) &
-          +2.d-6*k2_perp/(one*omega_2)*sin(k_z_2*(z(i)+0.5))
- enddo
-else
-write(6,*) 'ini must be 0-3'
-stop
-endif
-! transform to spectral space and calculate spectral energy
-call phys_to_spec(n,Psi_P,n+4,hat_Psi_P,x)
-call phys_to_spec(n,Psi_T,n+2,hat_Psi_T,x)
-call phys_to_spec(n,Tem,n+2,hat_Tem,x)
-call energy(n+2,hat_Psi_T,energy1)
-call energy(n+4,hat_Psi_P,energy2)
-call energy(n+2,hat_Tem,energy3)
-! output initial condition in physical space
-open(1,file='ini_phys.dat',form='formatted')
-do i=1, n
- write(1,'(7E15.6)') z(i), real(Psi_T(i))/sqrt(energy1), imag(Psi_T(i))/sqrt(energy1), &
-                           real(Psi_P(i))/sqrt(energy2), imag(Psi_P(i))/sqrt(energy2), &
-                           real(Tem(i))/sqrt(energy3), imag(Tem(i))/sqrt(energy3)
-enddo
-close(1)
-! output initial condition in Chebyshev spectral space
-open(1,file='ini_tor.dat',form='formatted')
-do j=1, n+2
- write(1,'(I5,3E15.6)') j, real(hat_Psi_T(j))/sqrt(energy1), imag(hat_Psi_T(j))/sqrt(energy1), &
-                        abs(hat_Psi_T(j))**2/energy1
-enddo
-close(1)
-open(1,file='ini_pol.dat',form='formatted')
-do j=1, n+4
- write(1,'(I5,3E15.6)') j, real(hat_Psi_P(j))/sqrt(energy2), imag(hat_Psi_P(j))/sqrt(energy2), &
-                        abs(hat_Psi_P(j))**2/energy2
-enddo
-close(1)
-open(1,file='ini_tem.dat',form='formatted')
-do j=1, n+2
- write(1,'(I5,3E15.6)') j, real(hat_Tem(j))/sqrt(energy3), imag(hat_Tem(j))/sqrt(energy3), &
-                        abs(hat_Tem(j))**2/energy3
-enddo
-close(1)
-!!! output initial condition in Fourier spectral space
-open(1,file='ini_fourier.dat',form='formatted')
-call Fourier(n,Psi_P,ns,ft,z)
-do j=1, ns
- write(1,'(I10,3E15.6)') j-1, real(ft(j))/sqrt(energy2), imag(ft(j))/sqrt(energy2), &
-                         abs(ft(j))**2/energy2
-enddo
-close(1)
-
 write(6,'(2(A10,I10,/),10(A10,E15.6,/))') 'n=', n, 'ini=', ini, 'Ek=', Ek, 'Pr=', Pr, &
  'Ra_c=', Ra_c, 'Ra/Ra_c-1=', Ra/Ra_c-1.d0, 'prec=', prec, 'dt=', dt, &
- 'k_perp=', sqrt(k2_perp), 'k2=', k2, 'omega_1', omega_1, 'omega_2', omega_2
+ 'k_perp=', sqrt(k2_perp), 'k2=', k2, 'omega_1=', omega_1, 'omega_2=', omega_2
 
 ! time stepping
 open(1,file='evolution.dat',form='formatted')
@@ -249,44 +199,8 @@ do it=0, nt
 enddo
 close(1)
 
-! output final result in physical space
-open(1,file='fin_phys.dat',form='formatted')
-call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
-call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
-call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
-do i=1, n
- write(1,'(7E15.6)') z(i), real(Psi_T(i))/sqrt(energy1), imag(Psi_T(i))/sqrt(energy1), &
-                           real(Psi_P(i))/sqrt(energy2), imag(Psi_P(i))/sqrt(energy2), &
-                           real(Tem(i))/sqrt(energy3), imag(Tem(i))/sqrt(energy3)
-enddo
-close(1)
-! output final result in Chebyshev spectral space
-open(1,file='fin_tor.dat',form='formatted')
-do j=1, n+2
- write(1,'(I5,3E15.6)') j, real(hat_Psi_T(j))/sqrt(energy1), imag(hat_Psi_T(j))/sqrt(energy1), &
-                        abs(hat_Psi_T(j))**2/energy1
-enddo
-close(1)
-open(1,file='fin_pol.dat',form='formatted')
-do j=1, n+4
- write(1,'(I5,3E15.6)') j, real(hat_Psi_P(j))/sqrt(energy2), imag(hat_Psi_P(j))/sqrt(energy2), &
-                        abs(hat_Psi_P(j))**2/energy2
-enddo
-close(1)
-open(1,file='fin_tem.dat',form='formatted')
-do j=1, n+2
- write(1,'(I5,3E15.6)') j, real(hat_Tem(j))/sqrt(energy3), imag(hat_Tem(j))/sqrt(energy3), &
-                        abs(hat_Tem(j))**2/energy3
-enddo
-close(1)
-!!! output final result in Fourier spectral space
-open(1,file='fin_fourier.dat',form='formatted')
-call Fourier(n,Psi_P,ns,ft,z)
-do j=1, ns
- write(1,'(I10,3E15.6)') j-1, real(ft(j))/sqrt(energy2), imag(ft(j))/sqrt(energy2), &
-                         abs(ft(j))**2/energy2
-enddo
-close(1)
+! output final result
+call output('fin')
 end program main
 
 subroutine step(time)
@@ -445,6 +359,60 @@ do i=1, n
  x=x+abs(a(i))**2
 enddo
 end subroutine energy
+
+subroutine output(prefix)
+use globe
+implicit none
+character(len=*) prefix
+character(len=20) filename
+integer i, j
+integer ns		! dimension of Fourier space
+parameter (ns=n/2+1)		
+double complex ft(ns)	! modes in Fourier space
+! output in physical space
+filename=trim(prefix) // "_phys.dat"
+open(1,file=filename,form='formatted')
+call spec_to_phys(n+2,hat_Psi_T,n,Psi_T,x,0)
+call spec_to_phys(n+4,hat_Psi_P,n,Psi_P,x,0)
+call spec_to_phys(n+2,hat_Tem,n,Tem,x,0)
+do i=1, n
+ write(1,'(7E15.6)') z(i), real(Psi_T(i))/sqrt(energy1), imag(Psi_T(i))/sqrt(energy1), &
+                           real(Psi_P(i))/sqrt(energy2), imag(Psi_P(i))/sqrt(energy2), &
+                           real(Tem(i))/sqrt(energy3), imag(Tem(i))/sqrt(energy3)
+enddo
+close(1)
+! output in Chebyshev spectral space
+filename=trim(prefix) // "_tor.dat"
+open(1,file=filename,form='formatted')
+do j=1, n+2
+ write(1,'(I5,3E15.6)') j, real(hat_Psi_T(j))/sqrt(energy1), imag(hat_Psi_T(j))/sqrt(energy1), &
+                        abs(hat_Psi_T(j))**2/energy1
+enddo
+close(1)
+filename=trim(prefix) // "_pol.dat"
+open(1,file=filename,form='formatted')
+do j=1, n+4
+ write(1,'(I5,3E15.6)') j, real(hat_Psi_P(j))/sqrt(energy2), imag(hat_Psi_P(j))/sqrt(energy2), &
+                        abs(hat_Psi_P(j))**2/energy2
+enddo
+close(1)
+filename=trim(prefix) // "_tem.dat"
+open(1,file=filename,form='formatted')
+do j=1, n+2
+ write(1,'(I5,3E15.6)') j, real(hat_Tem(j))/sqrt(energy3), imag(hat_Tem(j))/sqrt(energy3), &
+                        abs(hat_Tem(j))**2/energy3
+enddo
+close(1)
+! output in Fourier spectral space
+filename=trim(prefix) // "_fourier.dat"
+open(1,file=filename,form='formatted')
+call Fourier(n,Psi_P,ns,ft,z)
+do j=1, ns
+ write(1,'(I10,3E15.6)') j-1, real(ft(j))/sqrt(energy2), imag(ft(j))/sqrt(energy2), &
+                         abs(ft(j))**2/energy2
+enddo
+close(1)
+end subroutine output
 
 !!!   TTT(K,M,X) = the K-th derivative of Tm(X), the M-th Chebyshev polynomial evaluated at X.
       DOUBLE PRECISION FUNCTION TTT(K,M,X)
