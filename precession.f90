@@ -47,7 +47,7 @@ Pr=1.d-1
 prec=1.d-2
 ini=2
 dt=5.d-2
-nt=10
+nt=20000
 
 k_x=pi
 k_y=pi
@@ -85,8 +85,8 @@ elseif(ini.eq.1) then  ! random
   Tem(i)=1.d-6*(ini_r+one*ini_i)
  enddo
 elseif(ini.eq.2) then  ! two resonant inertial waves
- k_x=12.769447
- k_y=12.769447
+ k_x=12.769446701480280
+ k_y=12.769446701480280
  k_z_1=pi
  k_z_2=2.d0*pi
  k2_perp=k_x**2+k_y**2
@@ -103,8 +103,8 @@ elseif(ini.eq.2) then  ! two resonant inertial waves
           +2.d-6*k2_perp/(one*omega_2)*sin(k_z_2*(z(i)+0.5))
  enddo
 elseif(ini.eq.3) then  ! two resonant thermal-inertial waves
- k_x=14.230189
- k_y=14.230189
+ k_x=14.230188546781660
+ k_y=14.230188546781660
  k_z_1=pi
  k_z_2=2.d0*pi
  k2_perp=k_x**2+k_y**2
