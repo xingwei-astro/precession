@@ -21,7 +21,7 @@ double precision a1_inv(n+2,n+2), a2_inv(n+4,n+4), a3_inv(n+2,n+2)  ! inverse of
 double complex b1(n+2), b2(n+4), b3(n+2)  			    ! right-hand-side terms
 double precision energy1, energy2, energy3			    ! spectral energy in Chebyshev space
 double precision dt						    ! timestep
-double precision c1, c2, c3					    ! coefficients of precession terms
+double complex c1, c2, c3					    ! coefficients of precession terms
 double complex D1_Psi_T(n), D2_Psi_T(n)				    ! derivatives of Psi_T
 double complex D1_Psi_P(n), D2_Psi_P(n), D3_Psi_P(n), D4_Psi_P(n)   ! derivatives of Psi_P
 double complex D2_Tem(n)					    ! derivatives of Tem
@@ -47,7 +47,7 @@ Pr=1.d-1
 prec=1.d-2
 ini=2
 dt=5.d-2
-nt=20000
+nt=100
 
 k_x=pi
 k_y=pi
